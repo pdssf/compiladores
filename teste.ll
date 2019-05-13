@@ -4,6 +4,25 @@ target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-pc-linux-gnu"
 
 ; Function Attrs: noinline nounwind optnone uwtable
+define i32 @or(i32, float) #0 {
+  %3 = alloca i32, align 4
+  %4 = alloca float, align 4
+  %5 = alloca i32, align 4
+  store i32 %0, i32* %3, align 4
+  store float %1, float* %4, align 4
+  %6 = load i32, i32* %3, align 4
+  %7 = add nsw i32 %6, 1
+  store i32 %7, i32* %5, align 4
+  %8 = load i32, i32* %5, align 4
+  ret i32 %8
+}
+
+; Function Attrs: noinline nounwind optnone uwtable
+define float @retFloat() #0 {
+  ret float 1.000000e+00
+}
+
+; Function Attrs: noinline nounwind optnone uwtable
 define i32 @main() #0 {
   %1 = alloca i32, align 4
   store i32 0, i32* %1, align 4
