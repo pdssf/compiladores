@@ -1,3 +1,4 @@
+from antlr4 import *
 from CymbolVisitor import CymbolVisitor
 from CymbolParser import CymbolParser
 
@@ -13,8 +14,10 @@ class MyVisitor(CymbolVisitor):
 
 # Visit a parse tree produced by CymbolParser#funcDecl.
 def visitFuncDecl(self, ctx:CymbolParser.FuncDeclContext):
-    func_name = ctx.ID().getText()
+    #elementos iniciais: nome da funcao, tipo, e lista de parametros
+    func_name = ctx.ID().getText() 
     tyype = ctx.tyype().getText()
+    parametrslist = ctx.paramTypeList()
 
     if(tyype == 'int'):
         print('define i32 @' + func_name, end = '(')
@@ -26,4 +29,27 @@ def visitFuncDecl(self, ctx:CymbolParser.FuncDeclContext):
         print('erou')
         exit(1)
 
-    
+    i = 0
+    if(parametrslist != None):
+        listaParam = parametrslist.paramType()
+        for parametro in listaParam:
+            if(i!=0):
+                print(' ,')
+            if(parametro.tyype() == 'int'):
+                dicionarioParam[func_name].append('i32')
+                print('i32', end = '')
+            elif(parametro.tyype() == 'float'):
+                dicionarioParam[func_name].append('float')
+                print('float', end = '')
+            elif(parametro.tyype() == 'boolean'):
+                dicionarioParam[func_name].append('boolean')
+                print('boolean', end = '')
+            else:
+                print('erou')
+                exit(1)
+
+    print(') #0 {')
+
+    print('}') #fim da funçao
+        
+            
