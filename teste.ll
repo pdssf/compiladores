@@ -3,29 +3,23 @@ source_filename = "teste.c"
 target datalayout = "e-m:e-i64:64-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-pc-linux-gnu"
 
+@baxaki = global i32 88, align 4
+@glub = common global float 0.000000e+00, align 4
+
 ; Function Attrs: noinline nounwind optnone uwtable
-define i32 @or(i32, float) #0 {
+define i32 @main(i32) #0 {
+  %2 = alloca i32, align 4
   %3 = alloca i32, align 4
-  %4 = alloca float, align 4
-  %5 = alloca i32, align 4
+  %4 = alloca i32, align 4
+  store i32 0, i32* %2, align 4
   store i32 %0, i32* %3, align 4
-  store float %1, float* %4, align 4
-  %6 = load i32, i32* %3, align 4
-  %7 = add nsw i32 %6, 1
-  store i32 %7, i32* %5, align 4
-  %8 = load i32, i32* %5, align 4
-  ret i32 %8
-}
-
-; Function Attrs: noinline nounwind optnone uwtable
-define float @retFloat() #0 {
-  ret float 1.000000e+00
-}
-
-; Function Attrs: noinline nounwind optnone uwtable
-define i32 @main() #0 {
-  %1 = alloca i32, align 4
-  store i32 0, i32* %1, align 4
+  %5 = load i32, i32* @baxaki, align 4
+  %6 = add nsw i32 %5, 1
+  store i32 %6, i32* %4, align 4
+  %7 = load float, float* @glub, align 4
+  %8 = load i32, i32* @baxaki, align 4
+  %9 = sitofp i32 %8 to float
+  %10 = fadd float %7, %9
   ret i32 0
 }
 
