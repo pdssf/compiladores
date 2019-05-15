@@ -10,8 +10,6 @@ parametros = {}
 #dicionario de variaveis globais
 globais = {}
 
-
-
 class Type:
 	INT = "int"
 	FLOAT = "float"
@@ -21,9 +19,9 @@ class CymbolCheckerVisitor(CymbolVisitor):
 	def __init__(self):
 		self.estouDentro_daFuncao = 0
 		self.count = 0
-
+		
 	def visitIntExpr(self, ctx:CymbolParser.IntExprContext):
-		print("visting "+Type.INT)
+		print('ret i32')
 		return Type.INT
 
 	def visitFloatExpr(self, ctx:CymbolParser.FloatExprContext):
@@ -39,8 +37,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 
 		if(self.estouDentro_daFuncao == 0):
 			globais[var_name] = tyype #salvo a variavel e seu tipo
-			print('@'+var_name, end = '= ')
-   
+			print('@'+var_name, end = '= ')   
 			if (expr == None):
 				print('commom', end = ' ')
 				if(tyype == 'int'):
@@ -60,7 +57,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				print('global i1 '+ expr, end = ', ')
 			print('align 4')
 		else:
-			self.estouDentro_daFuncao = 0
+			#self.estouDentro_daFuncao = 0
 			self.count += 1
 			if(tyype == 'int'):
 				print('%' + str(self.count) +  '= alloca i32, align 4')
@@ -68,7 +65,17 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				print('%' + str(self.count) +  '= alloca float, align 4')
 			else:
 				print('%' + str(self.count) + '= alloca i1, align 4')
-  		
+
+			if (expr != None):
+				print('store', end = ' ')
+				if(tyype == 'int'):
+					print('i32 ' + expr.getText() + ', i32* %'+ str(self.count), end='')					
+				elif(tyype == 'float'):
+					print('float ' + expr.getText(), ', float* %'+str(self.count), end='')
+				else:
+					print('i1 '+ expr.getText(), ', i1* %'+str(self.count), end='')
+				print(', align 4')
+			  		
 	def visitFuncDecl(self, ctx:CymbolParser.FuncDeclContext):
 		#elementos iniciais: nome da funcao, tipo, e lista de parametros
 		func_name = ctx.ID().getText() 
@@ -92,8 +99,9 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			listaParam = parametrslist.paramType()
 			parametros[func_name]= listaParam
 			tamanho = len(listaParam)
+
 			for cursor in listaParam:
-				self.count += 1;
+				self.count += 1
 				if(i!=0):
 					print(',', end = ' ')
 				if(i < tamanho):
@@ -103,10 +111,36 @@ class CymbolCheckerVisitor(CymbolVisitor):
 						print('float', end = '')
 					else:
 						print('i1', end = '')
-				i = i+1;	
-  
-		print(') #0 {')
-		self.estouDentro_daFuncao= 999;
+				i = i+1  
+			print(') #0 {')
+			for p in listaParam:
+				self.count += 1
+				if ('int' in p.getText()):
+					print('%' + str(self.count) + ' = alloca i32, align 4')
+					variaveis[func_name,p.ID().getText()] = self.count
+				elif('float' in p.getText()):
+					print('%' + str(self.count) + ' = alloca float, align 4')
+					variaveis[func_name,p.ID().getText()] = self.count
+				else:
+					print('%' + str(self.count) + ' = alloca i1, align 4')
+					variaveis[func_name,p.ID().getText()] = self.count
+				
+			#store i32 %1, i32* %5, align 4
+			j =0
+
+			for p in listaParam:
+				if ('int' in p.getText()):
+					print('store i32 %' + str(j) + ', i32* %'+ str(i) + ', align 4')
+				elif('float' in p.getText()):
+					print('store float %' + str(j) + ', float* %'+ str(i) + ', align 4')
+				else:
+					print('store i1 %' + str(j) + ', i1* %'+ str(i) + ', align 4')
+				j += 1
+				i += 1
+		else:
+			print(') #0 {')
+
+		self.estouDentro_daFuncao= 999
 		self.visitChildren(ctx)
 		print('}') #fim da funçao
 
@@ -131,5 +165,14 @@ class CymbolCheckerVisitor(CymbolVisitor):
 	def aggregateResult(self, aggregate:Type, next_result:Type):
 		return next_result if next_result != None else aggregate
 
+#%13 = load i32, i32* %7, align 4
+#  ret i32 %13
+    # Visit a parse tree produced by CymbolParser#returnStat.
+'''	def visitReturnStat(self, ctx:CymbolParser.ReturnStatContext):
+		retorno = variaveis[ctx.expr().ID().getText(),str(ctx.expr())]
+		print('%' + str(self.count) + '= load i32, i32* %'+ str(retorno) + ', align 4')
+		print('ret i32' + str(self.count))
+        return self.visitChildren(ctx)
+'''
 
 	#clang -S -emit-llvm test_clang.c

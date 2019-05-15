@@ -70,7 +70,7 @@ block : '{' stat* '}'
 assignStat : ID '=' expr ';'
            ;
 
-returnStat : 'return' expr? ';'
+returnStat : 'return' expr? ';'    
            ;
 
 ifElseStat : ifStat (elseStat)?

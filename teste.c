@@ -1,11 +1,17 @@
-#include<stdio.h>
+//boolean verdade;
+int a = 0 +1;
+float x = 3.141516;
 
-float glub;
-int baxaki = 88;
-int main(int a){
-	int usando = baxaki + 1;
-	glub + baxaki;
-	return 0;
+int op (float e, int b, int c){
+	int ab;
+	ab = e + ab;
+	return ab;
+}
+int main(){
+	int a = 1;
+	int b;
+	float c = 13.2; 
+	return a;
 }
 //Para criar uma llvm vv
 //clang -S -emit-llvm teste.c  
