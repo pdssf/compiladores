@@ -10,13 +10,17 @@ parametros = {}
 #dicionario de variaveis globais
 globais = {}
 
+
+
 class Type:
 	INT = "int"
 	FLOAT = "float"
 	BOOL = "boolean"
 
 class CymbolCheckerVisitor(CymbolVisitor):
-	id_values = {}
+	def __init__(self):
+		self.estouDentro_daFuncao = 0
+		self.count = 0
 
 	def visitIntExpr(self, ctx:CymbolParser.IntExprContext):
 		print("visting "+Type.INT)
@@ -32,33 +36,45 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		var_name = ctx.ID().getText()
 		tyype = ctx.tyype().getText()
 		expr = ctx.expr()
-		globais[var_name] = tyype #salvo a variavel e seu tipo
-		print('@'+var_name, end = '= ')
 
-		if (expr == None):
-			print('commom', end = ' ')
-			if(tyype == 'int'):
-				expr = '0'
-			elif(tyype == 'float'):
-				expr = '0.000000e+00'
+		if(self.estouDentro_daFuncao == 0):
+			globais[var_name] = tyype #salvo a variavel e seu tipo
+			print('@'+var_name, end = '= ')
+   
+			if (expr == None):
+				print('commom', end = ' ')
+				if(tyype == 'int'):
+					expr = '0'
+				elif(tyype == 'float'):
+					expr = '0.000000e+00'
+				else:
+					expr = 'false'
 			else:
-				expr = 'false'
-		else:
-			expr = expr.getText()
+				expr = expr.getText()
 
-		if(tyype == 'int'):
-			print('global i32 '+ expr, end = ', ')
-		elif(tyype == 'float'):
-			print('global float '+ expr, end = ', ')
-		elif(tyype == 'boolean'):
-			print('global i1 '+ expr, end = ', ')
-		print('align 4')
-	
+			if(tyype == 'int'):
+				print('global i32 '+ expr, end = ', ')
+			elif(tyype == 'float'):
+				print('global float '+ expr, end = ', ')
+			elif(tyype == 'boolean'):
+				print('global i1 '+ expr, end = ', ')
+			print('align 4')
+		else:
+			self.estouDentro_daFuncao = 0
+			self.count += 1
+			if(tyype == 'int'):
+				print('%' + str(self.count) +  '= alloca i32, align 4')
+			elif(tyype == 'float'):
+				print('%' + str(self.count) +  '= alloca float, align 4')
+			else:
+				print('%' + str(self.count) + '= alloca i1, align 4')
+  		
 	def visitFuncDecl(self, ctx:CymbolParser.FuncDeclContext):
 		#elementos iniciais: nome da funcao, tipo, e lista de parametros
 		func_name = ctx.ID().getText() 
 		tyype = ctx.tyype().getText()
 		parametrslist = ctx.paramTypeList()
+		self.count = 0
 
 		if(tyype == 'int'):
 			print('define i32 @' + func_name, end = '(')
@@ -69,6 +85,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		else:
 			print('erou')
 			exit(1)
+   
 
 		i = 0
 		if(parametrslist != None):
@@ -76,6 +93,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			parametros[func_name]= listaParam
 			tamanho = len(listaParam)
 			for cursor in listaParam:
+				self.count += 1;
 				if(i!=0):
 					print(',', end = ' ')
 				if(i < tamanho):
@@ -88,6 +106,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				i = i+1;	
   
 		print(') #0 {')
+		self.estouDentro_daFuncao= 999;
 		self.visitChildren(ctx)
 		print('}') #fim da funçao
 
@@ -111,25 +130,6 @@ class CymbolCheckerVisitor(CymbolVisitor):
 
 	def aggregateResult(self, aggregate:Type, next_result:Type):
 		return next_result if next_result != None else aggregate
-		
-#clang -S -emit-llvm <input>.c
-#int soma (int a , int b) {
-	
- #i = 0
-		#if(parametrslist != None):
-		#	listaParam = parametrslist.paramType()
-		#	for parametro in listaParam:
-		#		if(i!=0):
-		#			print(' ,')
-		#		if(parametro.tyype() == 'int'):
-		#			dicionarioParam[func_name].append('i32')
-		#			print('i32', end = '')
-		#		elif(parametro.tyype() == 'float'):
-		#			dicionarioParam[func_name].append('float')
-		#			print('float', end = '')
-		#		elif(parametro.tyype() == 'boolean'):
-		#			dicionarioParam[func_name].append('boolean')
-		#			print('boolean', end = '')
-		#		else:
-		#			print('erou')
-		#			exit(1)
+
+
+	#clang -S -emit-llvm test_clang.c
