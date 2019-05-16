@@ -2,14 +2,6 @@ GRAMMAR = Cymbol
 VISITOR = $(GRAMMAR)CheckerVisitor
 ROOTRULE = fiile
 
-SHELL = /bin/bash
-JAR = antlr-4.7.2-complete.jar
-GRUN = java org.antlr.v4.gui.TestRig
-ANTLR4 = java -jar $(JAR)
-CLASSFILES = $(shell echo autogen/$(GRAMMAR){{Base,}Listener,Lexer,Parser}.class)
-TOKENFILES = $(shell echo autogen/$(GRAMMAR){Lexer,}.tokens)
-JAVAFILES = $(shell echo autogen/$(GRAMMAR){{Base,}Listener,Lexer,Parser}.java)
-
 PYDIR = antlr4-python3-runtime-4.7.2
 PYAUTOGEN = $(PYDIR)/src/autogen
 PYFILES = $(shell echo $(PYAUTOGEN)/$(GRAMMAR){Visitor,Lexer,Parser}.py)
@@ -37,6 +29,13 @@ $(PYAUTOGEN):
 
 #------------------------------- java rules ---------------------------
 
+#SHELL = /bin/bash
+#JAR = antlr-4.7.2-complete.jar
+#GRUN = java org.antlr.v4.gui.TestRig
+#ANTLR4 = java -jar $(JAR)
+#CLASSFILES = $(shell echo autogen/$(GRAMMAR){{Base,}Listener,Lexer,Parser}.class)
+#TOKENFILES = $(shell echo autogen/$(GRAMMAR){Lexer,}.tokens)
+#JAVAFILES = $(shell echo autogen/$(GRAMMAR){{Base,}Listener,Lexer,Parser}.java)
 #tree: $(CLASSFILES) | classpath
 #	$(GRUN) $(GRAMMAR) $(ROOTRULE) -gui
 

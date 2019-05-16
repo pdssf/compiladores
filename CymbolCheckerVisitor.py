@@ -144,23 +144,10 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		self.visitChildren(ctx)
 		print('}') #fim da funçao
 
-
-
 	def visitAddSubExpr(self, ctx:CymbolParser.AddSubExprContext):
 		left = ctx.expr()[0].accept(self)
 		right = ctx.expr()[1].accept(self)
-
-		if left == Type.INT and right == Type.INT:
-			result = Type.INT
-		else:
-			reult = Type.VOID
-			print("Mensagem de erro 3...")
-			exit()
-		
-		print("addition or subtraction of " + left + " " + right + " that results in a " + result)
-		return result
-
-
+		return 0
 
 	def aggregateResult(self, aggregate:Type, next_result:Type):
 		return next_result if next_result != None else aggregate
@@ -168,11 +155,9 @@ class CymbolCheckerVisitor(CymbolVisitor):
 #%13 = load i32, i32* %7, align 4
 #  ret i32 %13
     # Visit a parse tree produced by CymbolParser#returnStat.
-'''	def visitReturnStat(self, ctx:CymbolParser.ReturnStatContext):
-		retorno = variaveis[ctx.expr().ID().getText(),str(ctx.expr())]
+	'''def visitReturnStat(self, ctx:CymbolParser.ReturnStatContext):
+		retorno = variaveis[ctx.expr().getText(),str(ctx.expr())]
 		print('%' + str(self.count) + '= load i32, i32* %'+ str(retorno) + ', align 4')
 		print('ret i32' + str(self.count))
-        return self.visitChildren(ctx)
-'''
-
+		#return self.visitChildren(ctx)'''
 	#clang -S -emit-llvm test_clang.c
