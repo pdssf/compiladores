@@ -214,7 +214,9 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					print('%' + str(self.count) + '= load i32, i32* %'  + str(Nro_variavel_B) + ', align 4')
 					self.count_add()
 					print('%' + str(self.count) + '= add nsw i32 %'+ str(self.count - 2) + ' %' + str(self.count - 1))
-					Nro_variavel_resp = variaveis[nome_func,self.nome_variavel_atual]
+					# Não é nome variavel autal
+     				Nro_variavel_resp = variaveis[nome_func,self.nome_variavel_atual]
+					# Não é nome variavel autal
 					print('store i32 %' + str(self.count) + ', i32* %' + str(Nro_variavel_resp) + ', align 4')
 					result = valores_variaveis[nome_func,Nome_Variavel_A] + valores_variaveis[nome_func,Nome_Variavel_B]
 					valores_variaveis[nome_func,self.nome_variavel_atual] = result
