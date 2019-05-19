@@ -74,7 +74,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				print('global i1 '+ expr, end = ', ')
 			print('align 4')
 		else:
-			#self.estouDentro_daFuncao = 0
+			#self.estouDentro_daFuncao = 1
 			self.count += 1
 			if(tyype == 'int'):
 				self.tipo_atual = 'int'
@@ -85,6 +85,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				self.tipo_atual = 'float'
 				print('%' + str(self.count) +  '= alloca float, align 4')
 				variaveis[func_name,var_name] = self.count
+				print(func_name + ' ' + var_name + ' ' + ' ' , self.count)
 				self.nome_variavel_atual = var_name
 			else:
 				self.tipo_atual = 'boolean'
@@ -101,7 +102,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					else:	
 						print('store i32 ' + expr.getText() + ', i32* %'+ str(self.count) + ', align 4')
 						valores_variaveis[func_name,var_name] = int(expr.getText())
-      
+						variaveis[func_name,var_name] = self.count
 				elif(tyype == 'float'):
 					self.tipo_atual = 'float'
 					if(('+' in expr.getText()) or ('-' in expr.getText())):
@@ -109,7 +110,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					elif(('*' in expr.getText()) or ('/' in expr.getText())):
 						self.visitChildren(ctx)
 					else:
-						valores_variaveis[func_name,var_name] = float(expr.getText())
+						variaveis[func_name,var_name] = float(expr.getText())
 						print('store float ' + expr.getText(), ', float* %'+str(self.count) + ', align 4')
 						valores_variaveis[func_name,var_name] = float(expr.getText())
 				else:
@@ -193,11 +194,12 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		left = ctx.expr()[0].accept(self)
 		right = ctx.expr()[1].accept(self)
 		nome_func = self.nome_func_atual
+		exprOperador = ctx.op.text
 		# Se um dos operandos for uma variável,left ou right estara com seu valor NONE
 		# Se os dois operandos forem variáveis os dois campos left e right teram valor NONE
 		# Se nenhum dos dois tiver valores NONE os dois são constantes
 
-		exprOperador = ctx.op.text
+		
 		# SE for inteiro
 		if(self.tipo_atual == 'int'):
 			if ('+' == exprOperador):
@@ -328,10 +330,165 @@ class CymbolCheckerVisitor(CymbolVisitor):
 						self.assign_que_ira_receber_valor_expr = None
 						print('store i32 %' + str(self.count) + ', i32* %' + str(valor_registrador_atual) + ', align 4')
 						valores_variaveis[nome_func,self.nome_variavel_atual] = result
+		
+		# Se for Float
 		else:
-			pass
+			# SOMA FLOAT
+			if('+' in exprOperador):
+				#Se for uma soma
+				#Caso 1 : Duas constantes
+				if((left != None) and (right != None)):
+					result = left + right
+					print('store float ' + str(result) + ', float* %'+ str(self.count)+ ', align 4')
+					valores_variaveis[nome_func,self.nome_variavel_atual] = result
+					variaveis[nome_func,self.nome_variavel_atual] = self.count
+		
+				#Caso2 : Dois valores são variáveis
+				elif((left == None) and (right == None)):
+					self.count_add()
+					Nome_Variavel_A = exprIDLEFT = str(ctx.expr()[0].ID())
+					Nome_Variavel_B = exprIDLEFT = str(ctx.expr()[1].ID())
+					Nro_variavel_A = variaveis[nome_func,Nome_Variavel_A]
+					Nro_variavel_B = variaveis[nome_func,Nome_Variavel_B]
 
-			
+					print('%' + str(self.count) + '= load float, float* %' + str(Nro_variavel_A) + ', align 4')
+					self.count_add() #Igual a self.count += 1
+					print('%' + str(self.count) + '= load float, float* %'  + str(Nro_variavel_B) + ', align 4')
+					self.count_add()
+					print('%' + str(self.count) + '= fadd float %'+ str(self.count - 2) + ' %' + str(self.count - 1))
+					if(self.assign_que_ira_receber_valor_expr!= None):
+						Nro_variavel_resp = variaveis[nome_func,self.assign_que_ira_receber_valor_expr]
+					else:
+						Nro_variavel_resp = variaveis[nome_func,self.nome_variavel_atual]
+					self.assign_que_ira_receber_valor_expr= None
+					print('store float %' + str(self.count) + ', float* %' + str(Nro_variavel_resp) + ', align 4')
+					result = valores_variaveis[nome_func,Nome_Variavel_A] + valores_variaveis[nome_func,Nome_Variavel_B]
+					valores_variaveis[nome_func,self.nome_variavel_atual] = result
+					
+		
+				#Caso 3 : Um dos valores é constante o outro é de uma variável
+				elif((left == None) or (right == None)):
+					
+					if(left == None):
+						print('Variavel na esquerda')
+						self.count += 1
+						exprIDLEFT = str(ctx.expr()[0].ID())
+						nro_variavel = variaveis[nome_func,exprIDLEFT]
+						result = valores_variaveis[str(nome_func),str(exprIDLEFT)] + right
+						print('%' + str(self.count) + '= load float, float* %' + str(nro_variavel) + ', align 4')
+						self.count += 1
+						print('%' + str(self.count) + '= fpext float %' + str(self.count - 1) + ' to double')
+						self.count += 1
+						print('%' + str(self.count) + ' = fadd double %' + str(self.count - 1) + ' ,' + str(right))
+						self.count += 1
+						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count-1) + ' to float')
+						if(self.assign_que_ira_receber_valor_expr!= None):
+							valor_registrador_atual = variaveis[str(nome_func),str(self.assign_que_ira_receber_valor_expr)]
+						else:
+							valor_registrador_atual = variaveis[str(nome_func),str(self.nome_variavel_atual)]
+						self.assign_que_ira_receber_valor_expr= None
+						print('store float %' + str(self.count) + ', float* %' + str(valor_registrador_atual) + ', align 4')
+						valores_variaveis[nome_func,self.nome_variavel_atual] = result
+					else:
+						print('Variavel na direita')
+						self.count += 1
+						exprIDRIGHT = str(ctx.expr()[1].ID())
+						nro_variavel = variaveis[nome_func,exprIDRIGHT]
+						result = valores_variaveis[str(nome_func),str(exprIDRIGHT)] + left
+						print('%' + str(self.count) + '= load float, float* %' + str(nro_variavel) + ', align 4')
+						self.count += 1
+						print('%' + str(self.count) + '= fpext float %' + str(self.count - 1) + ' to double')
+						self.count += 1
+						print('%' + str(self.count) + ' = fadd double ' + str(left) + ', %' + str(self.count - 1))
+						self.count += 1
+						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count-1) + ' to float')
+						if(self.assign_que_ira_receber_valor_expr != None):
+							valor_registrador_atual = variaveis[str(nome_func),str(self.assign_que_ira_receber_valor_expr)]
+						else:
+							valor_registrador_atual = variaveis[str(nome_func),str(self.nome_variavel_atual)]
+						self.assign_que_ira_receber_valor_expr= None
+						print('store float %' + str(self.count) + ', float* %' + str(valor_registrador_atual) + ', align 4')
+						valores_variaveis[nome_func,self.nome_variavel_atual] = result
+			# Subtração floatt
+			else:
+				#Caso 1 : Duas constantes
+				if((left != None) and (right != None)):
+					result = left - right
+					print('store float ' + str(result) + ', float* %'+ str(self.count)+ ', align 4')
+					valores_variaveis[nome_func,self.nome_variavel_atual] = result
+					variaveis[nome_func,self.nome_variavel_atual] = self.count
+		
+				#Caso2 : Dois valores são variáveis
+				elif((left == None) and (right == None)):
+					self.count_add()
+					Nome_Variavel_A = exprIDLEFT = str(ctx.expr()[0].ID())
+					Nome_Variavel_B = exprIDLEFT = str(ctx.expr()[1].ID())
+					Nro_variavel_A = variaveis[nome_func,Nome_Variavel_A]
+					Nro_variavel_B = variaveis[nome_func,Nome_Variavel_B]
+
+					print('%' + str(self.count) + '= load float, float* %' + str(Nro_variavel_A) + ', align 4')
+					self.count_add() #Igual a self.count += 1
+					print('%' + str(self.count) + '= load float, float* %'  + str(Nro_variavel_B) + ', align 4')
+					self.count_add()
+					print('%' + str(self.count) + '= fsub float %'+ str(self.count - 2) + ' %' + str(self.count - 1))
+					if(self.assign_que_ira_receber_valor_expr!= None):
+						Nro_variavel_resp = variaveis[nome_func,self.assign_que_ira_receber_valor_expr]
+					else:
+						Nro_variavel_resp = variaveis[nome_func,self.nome_variavel_atual]
+					self.assign_que_ira_receber_valor_expr= None
+					print('store float %' + str(self.count) + ', float* %' + str(Nro_variavel_resp) + ', align 4')
+					result = valores_variaveis[nome_func,Nome_Variavel_A] - valores_variaveis[nome_func,Nome_Variavel_B]
+					valores_variaveis[nome_func,self.nome_variavel_atual] = result
+					
+		
+				#Caso 3 : Um dos valores é constante o outro é de uma variável
+				elif((left == None) or (right == None)):
+					
+					if(left == None):
+						print('Variavel na esquerda')
+						self.count += 1
+						exprIDLEFT = str(ctx.expr()[0].ID())
+						nro_variavel = variaveis[nome_func,exprIDLEFT]
+						result = valores_variaveis[str(nome_func),str(exprIDLEFT)] - right
+						print('%' + str(self.count) + '= load float, float* %' + str(nro_variavel) + ', align 4')
+						self.count += 1
+						print('%' + str(self.count) + '= fpext float %' + str(self.count - 1) + ' to double')
+						self.count += 1
+						print('%' + str(self.count) + ' = fsub double %' + str(self.count - 1) + ' ,' + str(right))
+						self.count += 1
+						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count-1) + ' to float')
+						if(self.assign_que_ira_receber_valor_expr!= None):
+							valor_registrador_atual = variaveis[str(nome_func),str(self.assign_que_ira_receber_valor_expr)]
+						else:
+							valor_registrador_atual = variaveis[str(nome_func),str(self.nome_variavel_atual)]
+						self.assign_que_ira_receber_valor_expr= None
+						print('store float %' + str(self.count) + ', float* %' + str(valor_registrador_atual) + ', align 4')
+						valores_variaveis[nome_func,self.nome_variavel_atual] = result
+					else:
+						print('Variavel na direita')
+						self.count += 1
+						exprIDRIGHT = str(ctx.expr()[1].ID())
+						nro_variavel = variaveis[nome_func,exprIDRIGHT]
+						result = valores_variaveis[str(nome_func),str(exprIDRIGHT)] - left
+						print('%' + str(self.count) + '= load float, float* %' + str(nro_variavel) + ', align 4')
+						self.count += 1
+						print('%' + str(self.count) + '= fpext float %' + str(self.count - 1) + ' to double')
+						self.count += 1
+						print('%' + str(self.count) + ' = fsub double ' + str(left) + ', %' + str(self.count - 1))
+						self.count += 1
+						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count-1) + ' to float')
+						if(self.assign_que_ira_receber_valor_expr != None):
+							valor_registrador_atual = variaveis[str(nome_func),str(self.assign_que_ira_receber_valor_expr)]
+						else:
+							valor_registrador_atual = variaveis[str(nome_func),str(self.nome_variavel_atual)]
+						self.assign_que_ira_receber_valor_expr= None
+						print('store float %' + str(self.count) + ', float* %' + str(valor_registrador_atual) + ', align 4')
+						valores_variaveis[nome_func,self.nome_variavel_atual] = result
+    
+    
+    
+    
+    
 		return self.visitChildren(ctx)
 
 	def visitMulDivExpr(self, ctx:CymbolParser.MulDivExprContext):
@@ -484,7 +641,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		print('%' + str(self.count) + '= load i32, i32* %'+ str(retorno) + ', align 4')
 		print('ret i32' + str(self.count))
 		#return self.visitChildren(ctx)'''
-	#clang -S -emit-llvm test_clang.c
+	#clang -S -emit-llvm teste.c
  
  #not
  #and e or
