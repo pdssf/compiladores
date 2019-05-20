@@ -10,7 +10,11 @@ float op (float e, int b, int c){
 int main(){
 	int a = 1;
 	int b ;
+	int c ;
+	int d ;
 	b = a - 1; 
+	c = a * b; 
+	d = a/b;
 	return a;
 }
 //Para criar uma llvm vv
