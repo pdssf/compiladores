@@ -1,11 +1,7 @@
 
-boolean verdade;
-int a = 0;
-float x = 3.141516;
-
-int maim(int a,boolean verdade,float glub){
-    boolean x ;
-    x = (1 != 1);
+int maim(){
+    boolean x = false;
+    x = x == true;
     return 0;
 }
 

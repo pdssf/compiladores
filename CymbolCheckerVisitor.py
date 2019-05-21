@@ -806,6 +806,8 @@ class CymbolCheckerVisitor(CymbolVisitor):
     
 
 	def visitNotExpr(self, ctx:CymbolParser.NotExprContext):
+		expressao = ctx.expr().accept(self)
+		print('not ',expressao.getText())
 		return self.visitChildren(ctx)
 
 	# Visit a parse tree produced by CymbolParser#AndOrExpr.
@@ -825,8 +827,8 @@ class CymbolCheckerVisitor(CymbolVisitor):
 	def visitEqExpr(self, ctx:CymbolParser.EqExprContext):
 		#coletando operadores e operação
 		left = ctx.expr()[0].accept(self)
-		print(left)
 		right = ctx.expr()[1].accept(self)
+		print(left,right)
 		nome_func = self.nome_func_atual
 		exprOperador = ctx.op.text
 		#icmp eq i32 4, 5          ; yields: result=false
