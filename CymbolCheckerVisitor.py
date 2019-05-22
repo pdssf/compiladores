@@ -423,7 +423,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		exprOperador = ctx.op.text
 		# SE FOR UMA Multiplicação
 			#SE FOR INT
-		if(self.tipo_atual == 'int'):			
+		if(tipo == 'int'):			
 			if ('*' == exprOperador):
 				#Caso 1 : Duas constantes
 				if((left != None) and (right != None)):
