@@ -1,6 +1,7 @@
 from antlr4 import *
 from autogen.CymbolParser import CymbolParser 
 from autogen.CymbolVisitor import CymbolVisitor
+import struct
 
 
 #dicionário de numero e tipo das variáveis --- (%i, tyype)
@@ -11,6 +12,9 @@ parametros = {}
 globais = {}
 
 
+def float_to_hex(f):
+	return hex(struct.unpack('<I', struct.pack('<f', f))[0])
+	
 class Type:
 	INT = "int"
 	FLOAT = "float"
@@ -24,7 +28,6 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		self.nome_variavel_atual = None
 		self.tipo_atual = None
 		self.assign_que_ira_receber_valor_expr = None
-		
 	
 	def count_add(self):
 		self.count += 1
@@ -67,7 +70,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			if(tyype == 'int'):
 				print('global i32 '+ expr, end = ', ')
 			elif(tyype == 'float'):
-				print('global float '+ expr, end = ', ')
+				print('global float '+ str(float_to_hex(float(expr))), end = ', ')
 			elif(tyype == 'boolean'):
 				print('global i1 '+ expr, end = ', ')
 			print('align 4')
@@ -99,7 +102,8 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					elif(('*' in expr.getText()) or ('/' in expr.getText())):
 						self.visitChildren(ctx)
 					else:
-						print('store float ' + expr.getText(), ', float* %'+str(self.count) + ', align 4')
+						expr = expr.getText()
+						print('store float ' + str(float_to_hex(float(expr))), ', float* %'+str(self.count) + ', align 4')
 				else:
 					if(('true' in expr.getText()) or ('false' in expr.getText())):
 						print('store i1 '+ expr.getText(), ', i1* %'+str(self.count) + ', align 4')
@@ -386,6 +390,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			nro_variavel_resp = '@' + str(nome_var)
 			tipo = globais[nome_var]
 
+		print(left,right)
 		#Procuro em variaveis locais
 		#elif: procuro em parametros
 		#elif: procuro em globais
@@ -492,9 +497,9 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				#Caso2 : Dois valores são variáveis
 				elif((left == None) and (right == None)):
 					self.count_add()
-					print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
+					print('%' + str(self.count) + '= load float, float* ' + str(nVarLeft) + ', align 4')
 					self.count_add()
-					print('%' + str(self.count) + '= load float, float* %'  + str(nVarRight) + ', align 4')
+					print('%' + str(self.count) + '= load float, float* '  + str(nVarRight) + ', align 4')
 					self.count_add()
 					print('%' + str(self.count) + '= fmul float %'+ str(self.count - 2) + ' %' + str(self.count - 1))
 					print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')
@@ -518,7 +523,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 						self.count += 1
 						print('%' + str(self.count) + ' = fpext float %' + str(self.count - 1) + ' to double')
 						self.count += 1
-						print('%' + str(self.count) + '= fmul double %' + str(left) + ',' + ' %' +str(self.count - 1))
+						print('%' + str(self.count) + '= fmul double ' + str(left) + ',' + ' %' +str(self.count - 1))
 						self.count += 1
 						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count - 1) + ' to float')
 						print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')
@@ -560,7 +565,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 						self.count += 1
 						print('%' + str(self.count) + ' = fpext float %' + str(self.count - 1) + ' to double')
 						self.count += 1
-						print('%' + str(self.count) + '= fdiv double %' + str(left) + ',' + ' %' +str(self.count - 1))
+						print('%' + str(self.count) + '= fdiv double ' + str(left) + ',' + ' %' +str(self.count - 1))
 						self.count += 1
 						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count - 1) + ' to float')
 						print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')     
@@ -568,6 +573,9 @@ class CymbolCheckerVisitor(CymbolVisitor):
     
 
 	def visitNotExpr(self, ctx:CymbolParser.NotExprContext):
+  #%5 = icmp ne i32 %4, 0
+  #%6 = xor i1 %5, true
+  #%7 = zext i1 %6 to i32
 		expressao = ctx.expr().accept(self)
 		print('not ',expressao)
 		return self.visitChildren(ctx)
