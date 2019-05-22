@@ -2,4 +2,7 @@ variaveis = {}
 
 variaveis['a','b'] = (1,'int')
 
-print(variaveis['a','b'][1])
+if(('a','cu') in variaveis):
+    print(variaveis['a','b'])
+else:
+    print('nn vai dar nao')

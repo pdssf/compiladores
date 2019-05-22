@@ -371,13 +371,46 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		left = ctx.expr()[0].accept(self)
 		right = ctx.expr()[1].accept(self)
 		nome_func = self.nome_func_atual
-
+		exprOperador = ctx.op.text
+		
 		if(self.assign_que_ira_receber_valor_expr == None):
 			nome_var = self.nome_variavel_atual			
 		else:
 			nome_var = self.assign_que_ira_receber_valor_expr
 			self.assign_que_ira_receber_valor_expr = None
 
+		if((nome_func, nome_var) in variaveis):
+			nro_variavel_resp = variaveis[nome_func, nome_var][0]
+			tipo = variaveis[nome_func, nome_var][1]
+		else:
+			nro_variavel_resp = '@' + str(nome_var)
+			tipo = globais[nome_var]
+
+		#Procuro em variaveis locais
+		#elif: procuro em parametros
+		#elif: procuro em globais
+		#else: assumo que é um numero
+		if(left == None):
+			varLeft = str(ctx.expr()[0].ID())
+			if((nome_func,varLeft) in variaveis):
+				nVarLeft = variaveis[nome_func,varLeft][0]
+			elif((nome_func,varLeft) in parametros):
+				nVarLeft = parametros[nome_func,varLeft]
+			else:
+				nVarLeft = '@' + str(varLeft)
+		else:
+			nVarLeft = left
+
+		if(right == None):
+			varRight = str(ctx.expr()[1].ID())
+			if((nome_func,varRight) in variaveis):
+				nVarRight = variaveis[nome_func,varRight][0]
+			elif((nome_func,varRight) in parametros):
+				nVarRight = parametros[nome_func,varRight]
+			else:
+				nVarRight = '@' + str(varRight)
+		else:
+			nvarRight = right
 		# Se um dos operandos for uma variável,left ou right estara com seu valor NONE
 		# Se os dois operandos forem variáveis os dois campos left e right teram valor NONE
 		# Se nenhum dos dois tiver valores NONE os dois são constantes
@@ -385,104 +418,68 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		exprOperador = ctx.op.text
 		# SE FOR UMA Multiplicação
 			#SE FOR INT
-		if(self.tipo_atual == 'int'):
-			
+		if(self.tipo_atual == 'int'):			
 			if ('*' == exprOperador):
 				#Caso 1 : Duas constantes
 				if((left != None) and (right != None)):
 					result = left * right
-					nro_variavel_resp = variaveis[nome_func, nome_var][0]
 					print('store i32 ' + str(result) + ', i32* %'+ str(nro_variavel_resp)+ ', align 4')
 		
 				#Caso2 : Dois valores são variáveis
 				elif((left == None) and (right == None)):
 					self.count_add()
-					varLeft = exprIDLEFT = str(ctx.expr()[0].ID())
-					varRight = exprIDLEFT = str(ctx.expr()[1].ID())
-					nVarLeft = variaveis[nome_func,varLeft]
-					nVarRight = variaveis[nome_func,varRight]
 					print('%' + str(self.count) + '= load i32, i32* %' + str(nVarLeft) + ', align 4')
 					self.count_add()
 					print('%' + str(self.count) + '= load i32, i32* %'  + str(nVarRight) + ', align 4')
 					self.count_add()
 					print('%' + str(self.count) + '= mul nsw i32 %'+ str(self.count - 2) + ' %' + str(self.count - 1))
-					nro_variavel_resp = variaveis[nome_func, nome_var][0]
-					
 					print('store i32 %' + str(self.count) + ', i32* %' + str(nro_variavel_resp) + ', align 4')
 		
 				#Caso 3 : Um dos valores é constante o outro é de uma variável
-				elif((left == None) or (right == None)):
-					
+				elif((left == None) or (right == None)):					
 					if(left == None):
 						self.count += 1
-						exprIDLEFT = str(ctx.expr()[0].ID())
-						nro_variavel = variaveis[nome_func,exprIDLEFT]
-						print('%' + str(self.count) + '= load i32, i32* %' + str(nro_variavel) + ', align 4')
+						print('%' + str(self.count) + '= load i32, i32* %' + str(nVarLeft) + ', align 4')
 						self.count += 1
 						print('%' + str(self.count) + '= mul nsw i32 %' + str(self.count - 1) + ',' + str(right))
-						nro_variavel_resp = variaveis[nome_func, nome_var][0]
-						
 						print('store i32 %' + str(self.count) + ', i32* %' + str(nro_variavel_resp) + ', align 4')
 					else:
 						self.count += 1
-						exprIDRIGHT = str(ctx.expr()[1].ID())
-						nro_variavel = variaveis[nome_func,exprIDRIGHT]
-						print('%' + str(self.count) + '= load i32, i32* %' + str(nro_variavel) + ', align 4')
+						print('%' + str(self.count) + '= load i32, i32* %' + str(nVarRight) + ', align 4')
 						self.count += 1
 						print('%' + str(self.count) + '= mul nsw i32 '+ str(left) + ', %' + str(self.count - 1))
-						nro_variavel_resp = variaveis[nome_func, nome_var][0]
-						
-						print('store i32 %' + str(self.count) + ', i32* %' + str(nro_variavel_resp) + ', align 4')
-					
+						print('store i32 %' + str(self.count) + ', i32* %' + str(nro_variavel_resp) + ', align 4')					
 			# SE FOR UMA Divisão		
 			else:
 				#Caso 1 : Duas constantes
 				if((left != None) and (right != None)):
 					result = left / right
-					nro_variavel_resp = variaveis[nome_func, nome_var][0]
 					print('store i32 ' + str(result) + ', i32* %'+ str(nro_variavel_resp)+ ', align 4')
 		
 				#Caso2 : Dois valores são variáveis
 				elif((left == None) and (right == None)):
 					self.count_add()
-					varLeft = exprIDLEFT = str(ctx.expr()[0].ID())
-					varRight = exprIDLEFT = str(ctx.expr()[1].ID())
-					nVarLeft = variaveis[nome_func,varLeft]
-					nVarRight = variaveis[nome_func,varRight]
 					print('%' + str(self.count) + '= load i32, i32* %' + str(nVarLeft) + ', align 4')
 					self.count_add()
 					print('%' + str(self.count) + '= load i32, i32* %'  + str(nVarRight) + ', align 4')
 					self.count_add()
-					print('%' + str(self.count) + '= sdiv i32 %'+ str(self.count - 2) + ' %' + str(self.count - 1))
-					nro_variavel_resp = variaveis[nome_func, nome_var][0]
-					
+					print('%' + str(self.count) + '= sdiv i32 %'+ str(self.count - 2) + ' %' + str(self.count - 1))	
 					print('store i32 %' + str(self.count) + ', i32* %' + str(nro_variavel_resp) + ', align 4')
 		
 				#Caso 3 : Um dos valores é constante o outro é de uma variável
-				elif((left == None) or (right == None)):
-					
+				elif((left == None) or (right == None)):					
 					if(left == None):
 						self.count += 1
-						exprIDLEFT = str(ctx.expr()[0].ID())
-						nro_variavel = variaveis[nome_func,exprIDLEFT]
-						print('%' + str(self.count) + '= load i32, i32* %' + str(nro_variavel) + ', align 4')
+						print('%' + str(self.count) + '= load i32, i32* %' + str(nVarLeft) + ', align 4')
 						self.count += 1
 						print('%' + str(self.count) + '= sdiv i32 %' + str(self.count - 1) + ',' + str(right))
-						nro_variavel_resp = variaveis[nome_func, nome_var][0]
-						
 						print('store i32 %' + str(self.count) + ', i32* %' + str(nro_variavel_resp) + ', align 4')
 					else:
 						self.count += 1
-						exprIDRIGHT = str(ctx.expr()[1].ID())
-						nro_variavel = variaveis[nome_func,exprIDRIGHT]
-						print('%' + str(self.count) + '= load i32, i32* %' + str(nro_variavel) + ', align 4')
+						print('%' + str(self.count) + '= load i32, i32* %' + str(nVarRight) + ', align 4')
 						self.count += 1
 						print('%' + str(self.count) + '= sdiv i32 ' + str(left) + ', %' + str(self.count - 1) )
-						nro_variavel_resp = variaveis[nome_func, nome_var][0]
-						
-
 						print('store i32 %' + str(self.count) + ', i32* %' + str(nro_variavel_resp) + ', align 4')
-		
 		
 		else:
 			  #SE FOR FLOAT
@@ -490,25 +487,16 @@ class CymbolCheckerVisitor(CymbolVisitor):
     				#Caso 1 : Duas constantes
 				if((left != None) and (right != None)):
 					result = left * right
-					nro_variavel_resp = variaveis[nome_func, nome_var][0]
-					#print(' nmro ' + str(nro_variavel_resp))
-					print('store float ' + str(result) + ', float* %'+ str(nro_variavel_resp)+ ', align 4')
-					
+					print('store float ' + str(result) + ', float* %'+ str(nro_variavel_resp)+ ', align 4')				
 		
 				#Caso2 : Dois valores são variáveis
 				elif((left == None) and (right == None)):
 					self.count_add()
-					varLeft = exprIDLEFT = str(ctx.expr()[0].ID())
-					varRight = exprIDLEFT = str(ctx.expr()[1].ID())
-					nVarLeft = variaveis[nome_func,varLeft]
-					nVarRight = variaveis[nome_func,varRight]
 					print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
 					self.count_add()
 					print('%' + str(self.count) + '= load float, float* %'  + str(nVarRight) + ', align 4')
 					self.count_add()
 					print('%' + str(self.count) + '= fmul float %'+ str(self.count - 2) + ' %' + str(self.count - 1))
-					nro_variavel_resp = variaveis[nome_func, nome_var][0]
-					
 					print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')
 		
 				#Caso 3 : Um dos valores é constante o outro é de uma variável
@@ -516,31 +504,23 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					
 					if(left == None):
 						self.count += 1
-						exprIDLEFT = str(ctx.expr()[0].ID())
-						nro_variavel = variaveis[nome_func,exprIDLEFT]
-						print('%' + str(self.count) + '= load float, float* %' + str(nro_variavel) + ', align 4')
+						print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
 						self.count += 1
 						print('%' + str(self.count) + ' = fpext float %' + str(self.count - 1) + ' to double')
 						self.count += 1
 						print('%' + str(self.count) + '= fmul double %' + str(self.count - 1) + ',' + str(right))
 						self.count += 1
-						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count - 1) + ' to float')
-						nro_variavel_resp = variaveis[nome_func, nome_var][0]
-						
+						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count - 1) + ' to float')						
 						print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')
 					else:
 						self.count += 1
-						exprIDRIGHT = str(ctx.expr()[1].ID())
-						nro_variavel = variaveis[nome_func,exprIDRIGHT]
-						print('%' + str(self.count) + '= load float, float* %' + str(nro_variavel) + ', align 4')
+						print('%' + str(self.count) + '= load float, float* %' + str(nVarRight) + ', align 4')
 						self.count += 1
 						print('%' + str(self.count) + ' = fpext float %' + str(self.count - 1) + ' to double')
 						self.count += 1
 						print('%' + str(self.count) + '= fmul double %' + str(left) + ',' + ' %' +str(self.count - 1))
 						self.count += 1
 						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count - 1) + ' to float')
-						nro_variavel_resp = variaveis[nome_func, nome_var][0]
-						
 						print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')
 					
 			# SE FOR UMA Divisão FLOAT		
@@ -548,24 +528,17 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				#Caso 1 : Duas constantes
 				if((left != None) and (right != None)):
 					result = left / right
-					nro_variavel_resp = variaveis[nome_func, nome_var][0]
 					print('store float ' + str(result) + ', float* %'+ str(nro_variavel_resp)+ ', align 4')
 					
 		
 				#Caso2 : Dois valores são variáveis
 				elif((left == None) and (right == None)):
 					self.count_add()
-					varLeft = exprIDLEFT = str(ctx.expr()[0].ID())
-					varRight = exprIDLEFT = str(ctx.expr()[1].ID())
-					nVarLeft = variaveis[nome_func,varLeft]
-					nVarRight = variaveis[nome_func,varRight]
 					print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
 					self.count_add()
 					print('%' + str(self.count) + '= load float, float* %'  + str(nVarRight) + ', align 4')
 					self.count_add()
 					print('%' + str(self.count) + '= fdiv float %'+ str(self.count - 2) + ' %' + str(self.count - 1))
-					nro_variavel_resp = variaveis[nome_func, nome_var][0]
-					
 					print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')
 		
 				#Caso 3 : Um dos valores é constante o outro é de uma variável
@@ -573,33 +546,24 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					
 					if(left == None):
 						self.count += 1
-						exprIDLEFT = str(ctx.expr()[0].ID())
-						nro_variavel = variaveis[nome_func,exprIDLEFT]
-						print('%' + str(self.count) + '= load float, float* %' + str(nro_variavel) + ', align 4')
+						print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
 						self.count += 1
 						print('%' + str(self.count) + ' = fpext float %' + str(self.count - 1) + ' to double')
 						self.count += 1
 						print('%' + str(self.count) + '= fdiv double %' + str(self.count - 1) + ',' + str(right))
 						self.count += 1
 						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count - 1) + ' to float')
-						nro_variavel_resp = variaveis[nome_func, nome_var][0]
-						
 						print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')
 					else:
 						self.count += 1
-						exprIDRIGHT = str(ctx.expr()[1].ID())
-						nro_variavel = variaveis[nome_func,exprIDRIGHT]
-						print('%' + str(self.count) + '= load float, float* %' + str(nro_variavel) + ', align 4')
+						print('%' + str(self.count) + '= load float, float* %' + str(nVarRight) + ', align 4')
 						self.count += 1
 						print('%' + str(self.count) + ' = fpext float %' + str(self.count - 1) + ' to double')
 						self.count += 1
 						print('%' + str(self.count) + '= fdiv double %' + str(left) + ',' + ' %' +str(self.count - 1))
 						self.count += 1
 						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count - 1) + ' to float')
-						nro_variavel_resp = variaveis[nome_func, nome_var][0]
-						
-						print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')
-     
+						print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')     
 		return self.visitChildren(ctx)
     
 
