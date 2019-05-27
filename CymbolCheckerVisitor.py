@@ -390,7 +390,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			nro_variavel_resp = '@' + str(nome_var)
 			tipo = globais[nome_var]
 
-		print(left,right)
+		#print(left,right)
 		#Procuro em variaveis locais
 		#elif: procuro em parametros
 		#elif: procuro em globais
@@ -534,8 +534,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				if((left != None) and (right != None)):
 					result = left / right
 					print('store float ' + str(result) + ', float* %'+ str(nro_variavel_resp)+ ', align 4')
-					
-		
+							
 				#Caso2 : Dois valores são variáveis
 				elif((left == None) and (right == None)):
 					self.count_add()
@@ -573,24 +572,105 @@ class CymbolCheckerVisitor(CymbolVisitor):
     
 
 	def visitNotExpr(self, ctx:CymbolParser.NotExprContext):
-  #%5 = icmp ne i32 %4, 0
-  #%6 = xor i1 %5, true
-  #%7 = zext i1 %6 to i32
-		expressao = ctx.expr().accept(self)
-		print('not ',expressao)
+		# a instrução not deve tomar um literal ou booleano e fazer 	
+		nome_func = self.nome_func_atual
+		expressao = ctx.expr().getText()
+		
+		if(self.assign_que_ira_receber_valor_expr == None):
+			nome_var = self.nome_variavel_atual			
+		else:
+			nome_var = self.assign_que_ira_receber_valor_expr
+			self.assign_que_ira_receber_valor_expr = None		
+		
+		if((nome_func, nome_var) in variaveis):
+			nro_variavel_resp = '%' + str(variaveis[nome_func, nome_var][0])
+		else:
+			nro_variavel_resp = '@' + str(nome_var)
+		
+		#Caso 1: negação de literais
+		if(expressao == 'true'):
+			print('store i1 false' + ', i1* '+ str(nro_variavel_resp)+ ', align 4')				
+		elif(expressao == 'false'):
+			print('store i1 true' + ', i1* '+ str(nro_variavel_resp)+ ', align 4')	
+		
+		#Caso 2: negação de variaveis ou expressões
+		else:
+			if((nome_func,expressao) in variaveis):
+				nexpressao = '%'+str(variaveis[nome_func,expressao][0])
+				tipo = variaveis[nome_func,expressao][1]
+			elif((nome_func,expressao) in parametros):
+				nexpressao = '%'+str(parametros[nome_func,expressao])
+			else:
+				nexpressao = '@' + str(expressao)
+			
+			self.count += 1
+			print('%'+str(self.count),'= load i1, i1*',nexpressao,', align 4')
+			self.count +=1
+			print('%'+str(self.count),'= cmp ne i1*'+str(self.count-1),',false')
+			self.count+=1
+			print('%'+str(self.count),'= xor i1*'+str(self.count-1),',true')
+			#self.count+=1
+			#print('%'+str(self.count),'= zext i1*'+str(self.count-1),',true')
+			print('store i1 %'+ str(self.count),' i1*' ,str(nro_variavel_resp)+', align 4')
+
+  		#%5 = load i32, i32* %4, align 4
+			#%5 = icmp ne i32 %4, 0
+			#%6 = xor i1 %5, true
+			#%7 = zext i1 %6 to i32
+
 		return self.visitChildren(ctx)
 
 	# Visit a parse tree produced by CymbolParser#AndOrExpr.
 	def visitAndOrExpr(self, ctx:CymbolParser.AndOrExprContext):
-		#coletando operadores e operação
 		left = ctx.expr()[0].accept(self)
 		right = ctx.expr()[1].accept(self)
 		nome_func = self.nome_func_atual
 		exprOperador = ctx.op.text
-		if('&&' == exprOperador):
-			print('Annnd')
-		else: 
-			print('oooorr')
+		
+		if(self.assign_que_ira_receber_valor_expr == None):
+			nome_var = self.nome_variavel_atual			
+		else:
+			nome_var = self.assign_que_ira_receber_valor_expr
+			self.assign_que_ira_receber_valor_expr = None
+
+		if((nome_func, nome_var) in variaveis):
+			nro_variavel_resp = variaveis[nome_func, nome_var][0]
+			tipo = variaveis[nome_func, nome_var][1]
+		else:
+			nro_variavel_resp = '@' + str(nome_var)
+			tipo = globais[nome_var]
+
+		#print(left,right)
+		#Procuro em variaveis locais
+		#elif: procuro em parametros
+		#elif: procuro em globais
+		#else: assumo que é um numero
+		if(left == None):
+			varLeft = str(ctx.expr()[0].ID())
+			if((nome_func,varLeft) in variaveis):
+				nVarLeft = variaveis[nome_func,varLeft][0]
+			elif((nome_func,varLeft) in parametros):
+				nVarLeft = parametros[nome_func,varLeft]
+			else:
+				nVarLeft = '@' + str(varLeft)
+		else:
+			nVarLeft = left
+
+		if(right == None):
+			varRight = str(ctx.expr()[1].ID())
+			if((nome_func,varRight) in variaveis):
+				nVarRight = variaveis[nome_func,varRight][0]
+			elif((nome_func,varRight) in parametros):
+				nVarRight = parametros[nome_func,varRight]
+			else:
+				nVarRight = '@' + str(varRight)
+		else:
+			nvarRight = right
+		
+		if('&&' in exprOperador): #caso uma operação AND
+
+		else: #caso uma operação OR
+			
 		return self.visitChildren(ctx)
 '''
 	# Visit a parse tree produced by CymbolParser#EqExpr.
