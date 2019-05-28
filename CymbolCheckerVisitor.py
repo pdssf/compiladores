@@ -94,12 +94,16 @@ class CymbolCheckerVisitor(CymbolVisitor):
 						self.visitChildren(ctx)
 					elif(('*' in expr.getText()) or ('/' in expr.getText())):
 						self.visitChildren(ctx)
+					elif('==' in expr.getText() or '!=' in expr.getText()):
+						 self.visitChildren(ctx)
 					else:	
 						print('store i32 ' + expr.getText() + ', i32* %'+ str(self.count) + ', align 4')
 				elif(tyype == 'float'):
 					if(('+' in expr.getText()) or ('-' in expr.getText())):
 						self.visitChildren(ctx)
 					elif(('*' in expr.getText()) or ('/' in expr.getText())):
+						self.visitChildren(ctx)
+					elif(('==' in expr.getText()) or ('!=' in expr.getText())):
 						self.visitChildren(ctx)
 					else:
 						expr = expr.getText()
@@ -622,8 +626,8 @@ class CymbolCheckerVisitor(CymbolVisitor):
 
 	# Visit a parse tree produced by CymbolParser#AndOrExpr.
 	def visitAndOrExpr(self, ctx:CymbolParser.AndOrExprContext):
-		left = ctx.expr()[0].getText()
-		right = ctx.expr()[1].getText()
+		left = ctx.expr()[0].accept(self)
+		right = ctx.expr()[1].accept(self)
 		nome_func = self.nome_func_atual
 		exprOperador = ctx.op.text
 		
@@ -640,15 +644,12 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			nro_variavel_resp = '@' + str(nome_var)
 			tipo = globais[nome_var]
 
-		#apenas para ajudar na checkagem
-		varl = False
-		varr = False
+		#print(left,right)
 		#Procuro em variaveis locais
 		#elif: procuro em parametros
 		#elif: procuro em globais
 		#else: assumo que é um numero
-		if(left != 'true' and left != 'false'):
-			varl = True
+		if(left == None):
 			varLeft = str(ctx.expr()[0].ID())
 			if((nome_func,varLeft) in variaveis):
 				nVarLeft = variaveis[nome_func,varLeft][0]
@@ -657,14 +658,9 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			else:
 				nVarLeft = '@' + str(varLeft)
 		else:
-			if('f' in left):
-				left = False
-			else:
-				left = True
 			nVarLeft = left
 
-		if(right != 'true' and right != 'false'):
-			varr = True
+		if(right == None):
 			varRight = str(ctx.expr()[1].ID())
 			if((nome_func,varRight) in variaveis):
 				nVarRight = variaveis[nome_func,varRight][0]
@@ -673,50 +669,13 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			else:
 				nVarRight = '@' + str(varRight)
 		else:
-			if('f' in right):
-				right = False
-			else:
-				right = True
 			nvarRight = right
-<<<<<<< HEAD
-
-
-			'''self.count_add()
-			print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
-			self.count_add()
-			print('%' + str(self.count) + '= load float, float* %'  + str(nVarRight) + ', align 4')'''
-			
-		if('&&' in exprOperador): #caso uma operação AND
-			if(varr == False and varl == False):
-				result = left and right
-				print('store i1 ' + str(result)+', i1* '+ str(nro_variavel_resp)+ ', align 4')	
-			else:
-				if(varl == True):
-					self.count_add()
-					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
-				if(varr == True):
-					self.count_add()
-					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
-
-		else: #caso uma operação OR
-			if(var == False):
-				result = left or right
-				print('store i1 ' + str(result)+', i1* '+ str(nro_variavel_resp)+ ', align 4')
-			else:
-				if(varl == True):
-					self.count_add()
-					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
-				if(varr == True):
-					self.count_add()
-					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
-=======
 		
 		#if('&&' in exprOperador): #caso uma operação AND
 
 		#else: #caso uma operação OR
 		#	print("Implementar")
 			
->>>>>>> 3d4a044de9c95f51b734ded9c1e683d133241e5c
 		return self.visitChildren(ctx)
 
 	# Visit a parse tree produced by CymbolParser#EqExpr.
@@ -725,6 +684,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		right = ctx.expr()[1].accept(self)
 		nome_func = self.nome_func_atual
 		exprOperador = ctx.op.text
+		#print(exprOperador)
   
 		if(self.assign_que_ira_receber_valor_expr == None):
     			nome_var = self.nome_variavel_atual			
@@ -770,123 +730,122 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		#<result> = icmp ne float* %X, %X     ; yields: result=false
 		# SE for inteiro (verificar com @Adriano) junto com esses 'None'
 	
-	
-		if('==' == exprOperador):  
-			if(tipo == 'int'):
-        # Constantes
-				if((left != None) and (right != None)):
+
+		if(tipo == 'int'):
+    	 # Constantes
+			if((left != None) and (right != None)):
+				if(exprOperador == '=='):
 					result = (left == right)
-					if(result == True):
-							result = 1;
-					else:
-							result = 0;
-					print('store i32 '+ (result)+ ', i32* %'+ str(self.count)+ ', align 4') #sera que tem esse align?????
-				# 2 Variáveis
-				elif((left == None) and (right == None)):
-					self.count += 1
-					print('%' + str(self.count) + '= load i32, i32* %' + str(nVarLeft) + ', align 4')
-					self.count += 1
-					print('%' + str(self.count) + '= load i32, i32* %' + str(nVarRight) + ', align 4')
-					self.count += 1
+				else:
+					result = (left != right)
+				print('store i32 '+ str(int(result))+ ', i32* %'+ str(self.count)+ ', align 4')
+			# 2 Variáveis
+			elif((left == None) and (right == None)):
+				self.count += 1
+				print('%' + str(self.count) + '= load i32, i32* %' + str(nVarLeft) + ', align 4')
+				self.count += 1
+				print('%' + str(self.count) + '= load i32, i32* %' + str(nVarRight) + ', align 4')
+				self.count += 1
+				if(exprOperador == '=='):
 					print('%' + str(self.count) + '= icmp eq i32 %' + str(self.count - 2) + ', %' + str(self.count -1))
+				else:
+					print('%' + str(self.count) + '= icmp ne i32 %' + str(self.count - 2) + ', %' + str(self.count -1))
+				self.count += 1
+				print('%' + str(self.count) + '= zext i1 %' + str(self.count-1) + ' to i32')
+				print('store i32 %' + str(self.count) + ' ,i32* %' + str(nro_variavel_resp) + ' , align 4')
+			# Variável e cte
+			else:
+				if(left == None):
+					self.count += 1
+					print('%' + str(self.count) + ' = load i32, i32* %' + str(nVarLeft) + ', align 4')
+					self.count += 1
+					if(exprOperador == '=='):
+						print('%' + str(self.count) + ' = icmp eq i32 %' + str(self.count - 1) + ', ' + str(right))
+					else:
+						print('%' + str(self.count) + ' = icmp ne i32 %' + str(self.count - 1) + ', ' + str(right))
 					self.count += 1
 					print('%' + str(self.count) + '= zext i1 %' + str(self.count-1) + ' to i32')
 					print('store i32 %' + str(self.count) + ' ,i32* %' + str(nro_variavel_resp) + ' , align 4')
-				# Variável e cte
 				else:
-					if(left == None):
-						self.count += 1
-						print('%' + str(self.count) + ' = load i32, i32* %' + str(nVarLeft) + ', align 4')
-						self.count += 1
-						print('%' + str(self.count) + ' = icmp eq i32 %' + str(self.count - 1) + ', ' + str(right))
-						self.count += 1
-						print('%' + str(self.count) + '= zext i1 %' + str(self.count-1) + ' to i32')
-						print('store i32 %' + str(self.count) + ' ,i32* %' + str(nro_variavel_resp) + ' , align 4')
-					else:
-						self.count += 1
-						print('%' + str(self.count) + ' = load i32, i32* %' + str(nVarRight) + ', align 4')
-						self.count += 1
+					self.count += 1
+					print('%' + str(self.count) + ' = load i32, i32* %' + str(nVarRight) + ', align 4')
+					self.count += 1
+					if(exprOperador == '=='):
 						print('%' + str(self.count) + ' = icmp eq i32 ' + str(left) + ', %' + str(self.count - 1) )
-						self.count += 1
-						print('%' + str(self.count) + '= zext i1 %' + str(self.count-1) + ' to i32')
-						print('store i32 %' + str(self.count) + ' ,i32* %' + str(nro_variavel_resp) + ' , align 4')
-      
-			elif(tipo == 'float'):
-				if((left != None) and (right != None)):
-					result = (left == right)
-					if(result == True):
-							result = 1.000000e+00
-							str_result = '1.000000e+00'
 					else:
-							result = 0.000000e+00
-							str_result = '0.000000e+00'
-					print('store float ' + str_result + ', float* %'+ str(self.count)+ ', align 4')
-
-				elif((left == None) and (right == None)):
-					self.count += 1
-					print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
-					self.count += 1
-					print('%' + str(self.count) + '= load float, float* %' + str(nVarRight) + ', align 4')
-					self.count += 1
-					print('%' + str(self.count) + '= fcmp oeq float %' + str(self.count - 2) + ', %' + str(self.count -1))
+						print('%' + str(self.count) + ' = icmp ne i32 ' + str(left) + ', %' + str(self.count - 1) )   
 					self.count += 1
 					print('%' + str(self.count) + '= zext i1 %' + str(self.count-1) + ' to i32')
-					self.count += 1
-					print('%' + str(self.count) + '= sitofp i32 %' + str(self.count - 1) + ' to float')
-					print('store float %' + str(self.count) + ' ,float* %' + str(nro_variavel_resp) + ' , align 4')
-
-				#Verificar com Paulo , notação 3.003000e+02
+					print('store i32 %' + str(self.count) + ' ,i32* %' + str(nro_variavel_resp) + ' , align 4')
+      
+		elif(tipo == 'float'):
+			if((left != None) and (right != None)):
+				if(exprOperador == '=='):
+					result = (left == right)
 				else:
-					if(left == None):
-						self.count += 1
-						print('%' + str(self.count) + ' = load float, float* %' + str(nVarLeft) + ', align 4')
-						self.count += 1
-						print('%' + str(self.count) + ' = fpext float %' + str(self.count-1) + ' to double')
-						self.count += 1
+					result = (left != right)
+				if(result == True):
+						str_result = '1.000000e+00'
+				else:
+						str_result = '0.000000e+00'
+				print('store float ' + str_result + ', float* %'+ str(self.count)+ ', align 4')
+
+			elif((left == None) and (right == None)):
+				self.count += 1
+				print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
+				self.count += 1
+				print('%' + str(self.count) + '= load float, float* %' + str(nVarRight) + ', align 4')
+				self.count += 1
+				if(exprOperador == '=='):
+					print('%' + str(self.count) + '= fcmp oeq float %' + str(self.count - 2) + ', %' + str(self.count -1))
+				else:
+					print('%' + str(self.count) + '= fcmp une float %' + str(self.count - 2) + ', %' + str(self.count -1))
+				self.count += 1
+				print('%' + str(self.count) + '= zext i1 %' + str(self.count-1) + ' to i32')
+				self.count += 1
+				print('%' + str(self.count) + '= sitofp i32 %' + str(self.count - 1) + ' to float')
+				print('store float %' + str(self.count) + ' ,float* %' + str(nro_variavel_resp) + ' , align 4')
+
+			#Verificar com Paulo , notação 3.003000e+02
+			else:
+				if(left == None):
+					self.count += 1
+					print('%' + str(self.count) + ' = load float, float* %' + str(nVarLeft) + ', align 4')
+					self.count += 1
+					print('%' + str(self.count) + ' = fpext float %' + str(self.count-1) + ' to double')
+					self.count += 1
+					if(exprOperador == '=='):
 						print('%' + str(self.count) + ' = fcmp oeq double %' + str(self.count - 1) + ', ' + str(right))
-						self.count += 1
-						print('%' + str(self.count) + ' = zext i1 %' + str(self.count-1) + ' to i32')
-						self.count += 1
-						print('%' + str(self.count) + ' = sitofp i32 %'+str(self.count-1)+ ' to float')
-						print('store float %' + str(self.count) + ' ,float* %' + str(nro_variavel_resp) + ' , align 4')
-						
 					else:
-						self.count += 1
-						print('%' + str(self.count) + ' = load float, float* %' + str(nVarRight) + ', align 4')
-						self.count += 1
-						print('%' + str(self.count) + ' = fpext float %' + str(self.count-1) + ' to double')
-						self.count += 1
+						print('%' + str(self.count) + ' = fcmp une double %' + str(self.count - 1) + ', ' + str(right))
+					self.count += 1
+					print('%' + str(self.count) + ' = zext i1 %' + str(self.count-1) + ' to i32')
+					self.count += 1
+					print('%' + str(self.count) + ' = sitofp i32 %'+str(self.count-1)+ ' to float')
+					print('store float %' + str(self.count) + ' ,float* %' + str(nro_variavel_resp) + ' , align 4')
+					
+				else:
+					self.count += 1
+					print('%' + str(self.count) + ' = load float, float* %' + str(nVarRight) + ', align 4')
+					self.count += 1
+					print('%' + str(self.count) + ' = fpext float %' + str(self.count-1) + ' to double')
+					self.count += 1
+					if(exprOperador == '=='):
 						print('%' + str(self.count) + ' = fcmp oeq double '  + str(left) + ', %' + str(self.count - 1))
-						self.count += 1
-						print('%' + str(self.count) + ' = zext i1 %' + str(self.count-1) + ' to i32')
-						self.count += 1
-						print('%' + str(self.count) + ' = sitofp i32 %'+str(self.count-1)+ ' to float')
-						print('store float %' + str(self.count) + ' ,float* %' + str(nro_variavel_resp) + ' , align 4')
-         
+					else:
+						print('%' + str(self.count) + ' = fcmp une double '  + str(left) + ', %' + str(self.count - 1))
+					self.count += 1
+					print('%' + str(self.count) + ' = zext i1 %' + str(self.count-1) + ' to i32')
+					self.count += 1
+					print('%' + str(self.count) + ' = sitofp i32 %'+str(self.count-1)+ ' to float')
+					print('store float %' + str(self.count) + ' ,float* %' + str(nro_variavel_resp) + ' , align 4')
+               
 		return self.visitChildren(ctx)
             
-	'''
-		if('!=' == exprOperador):
-			if((left != None) and (right != None)):
-				result = (left != right)
-				print('store i1 ' + str(result) + ', i1* %'+ str(self.count)+ ', align 4') #sera que tem esse align?????
+	
 
-		elif(self.tipo_atual == 'float'):
-			if('==' == exprOperador):
-				if((left != None) and (right != None)):
-					result = (left == right)
-					print('store i1 ' + result + ', i1* %'+ str(self.count)+ ', align 4') #sera que tem esse align?????
 
-			if('!=' == exprOperador):
-		else:
-			if('==' == exprOperador):
-				if((left != None) and (right != None)):
-					result = (left == right)
-					print('store i1 ' + result + ', i1* %'+ str(self.count)+ ', align 4') #sera que tem esse align?????
-			if('!=' == exprOperador)
-		'''	
-'''
-		'''	
+
 	# Visit a parse tree produced by CymbolParser#ComparisonExpr.
 	# http://llvm.org/docs/LangRef.html#icmp-instruction
 ''' 
@@ -927,3 +886,4 @@ def visitComparisonExpr(self, ctx:CymbolParser.ComparisonExprContext):
 		print('ret i32' + str(self.count))
 		#return self.visitChildren(ctx)
 '''
+
