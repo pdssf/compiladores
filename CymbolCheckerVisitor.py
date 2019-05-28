@@ -737,7 +737,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 							result = 1;
 					else:
 							result = 0;
-					print('store i32 '+ str(result)+ ', i32* %'+ str(self.count)+ ', align 4') #sera que tem esse align?????
+					print('store i32 '+ (result)+ ', i32* %'+ str(self.count)+ ', align 4') #sera que tem esse align?????
 				# 2 Variáveis
 				elif((left == None) and (right == None)):
 					self.count += 1
@@ -768,6 +768,58 @@ class CymbolCheckerVisitor(CymbolVisitor):
 						print('%' + str(self.count) + '= zext i1 %' + str(self.count-1) + ' to i32')
 						print('store i32 %' + str(self.count) + ' ,i32* %' + str(nro_variavel_resp) + ' , align 4')
       
+			elif(tipo == 'float'):
+				if((left != None) and (right != None)):
+					result = (left == right)
+					if(result == True):
+							result = 1.000000e+00
+							str_result = '1.000000e+00'
+					else:
+							result = 0.000000e+00
+							str_result = '0.000000e+00'
+					print('store float ' + str_result + ', float* %'+ str(self.count)+ ', align 4')
+
+				elif((left == None) and (right == None)):
+					self.count += 1
+					print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
+					self.count += 1
+					print('%' + str(self.count) + '= load float, float* %' + str(nVarRight) + ', align 4')
+					self.count += 1
+					print('%' + str(self.count) + '= fcmp oeq float %' + str(self.count - 2) + ', %' + str(self.count -1))
+					self.count += 1
+					print('%' + str(self.count) + '= zext i1 %' + str(self.count-1) + ' to i32')
+					self.count += 1
+					print('%' + str(self.count) + '= sitofp i32 %' + str(self.count - 1) + ' to float')
+					print('store float %' + str(self.count) + ' ,float* %' + str(nro_variavel_resp) + ' , align 4')
+
+				#Verificar com Paulo , notação 3.003000e+02
+				else:
+					if(left == None):
+						self.count += 1
+						print('%' + str(self.count) + ' = load float, float* %' + str(nVarLeft) + ', align 4')
+						self.count += 1
+						print('%' + str(self.count) + ' = fpext float %' + str(self.count-1) + ' to double')
+						self.count += 1
+						print('%' + str(self.count) + ' = fcmp oeq double %' + str(self.count - 1) + ', ' + str(right))
+						self.count += 1
+						print('%' + str(self.count) + ' = zext i1 %' + str(self.count-1) + ' to i32')
+						self.count += 1
+						print('%' + str(self.count) + ' = sitofp i32 %'+str(self.count-1)+ ' to float')
+						print('store float %' + str(self.count) + ' ,float* %' + str(nro_variavel_resp) + ' , align 4')
+						
+					else:
+						self.count += 1
+						print('%' + str(self.count) + ' = load float, float* %' + str(nVarRight) + ', align 4')
+						self.count += 1
+						print('%' + str(self.count) + ' = fpext float %' + str(self.count-1) + ' to double')
+						self.count += 1
+						print('%' + str(self.count) + ' = fcmp oeq double '  + str(left) + ', %' + str(self.count - 1))
+						self.count += 1
+						print('%' + str(self.count) + ' = zext i1 %' + str(self.count-1) + ' to i32')
+						self.count += 1
+						print('%' + str(self.count) + ' = sitofp i32 %'+str(self.count-1)+ ' to float')
+						print('store float %' + str(self.count) + ' ,float* %' + str(nro_variavel_resp) + ' , align 4')
+         
 		return self.visitChildren(ctx)
             
 	'''
