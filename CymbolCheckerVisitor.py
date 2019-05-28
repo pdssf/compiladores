@@ -622,8 +622,8 @@ class CymbolCheckerVisitor(CymbolVisitor):
 
 	# Visit a parse tree produced by CymbolParser#AndOrExpr.
 	def visitAndOrExpr(self, ctx:CymbolParser.AndOrExprContext):
-		left = ctx.expr()[0].accept(self)
-		right = ctx.expr()[1].accept(self)
+		left = ctx.expr()[0].getText()
+		right = ctx.expr()[1].getText()
 		nome_func = self.nome_func_atual
 		exprOperador = ctx.op.text
 		
@@ -640,12 +640,15 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			nro_variavel_resp = '@' + str(nome_var)
 			tipo = globais[nome_var]
 
-		#print(left,right)
+		#apenas para ajudar na checkagem
+		varl = False
+		varr = False
 		#Procuro em variaveis locais
 		#elif: procuro em parametros
 		#elif: procuro em globais
 		#else: assumo que é um numero
-		if(left == None):
+		if(left != 'true' and left != 'false'):
+			varl = True
 			varLeft = str(ctx.expr()[0].ID())
 			if((nome_func,varLeft) in variaveis):
 				nVarLeft = variaveis[nome_func,varLeft][0]
@@ -654,9 +657,14 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			else:
 				nVarLeft = '@' + str(varLeft)
 		else:
+			if('f' in left):
+				left = False
+			else:
+				left = True
 			nVarLeft = left
 
-		if(right == None):
+		if(right != 'true' and right != 'false'):
+			varr = True
 			varRight = str(ctx.expr()[1].ID())
 			if((nome_func,varRight) in variaveis):
 				nVarRight = variaveis[nome_func,varRight][0]
@@ -665,12 +673,41 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			else:
 				nVarRight = '@' + str(varRight)
 		else:
+			if('f' in right):
+				right = False
+			else:
+				right = True
 			nvarRight = right
-		
+
+
+			'''self.count_add()
+			print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
+			self.count_add()
+			print('%' + str(self.count) + '= load float, float* %'  + str(nVarRight) + ', align 4')'''
+			
 		if('&&' in exprOperador): #caso uma operação AND
+			if(varr == False and varl == False):
+				result = left and right
+				print('store i1 ' + str(result)+', i1* '+ str(nro_variavel_resp)+ ', align 4')	
+			else:
+				if(varl == True):
+					self.count_add()
+					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
+				if(varr == True):
+					self.count_add()
+					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
 
 		else: #caso uma operação OR
-			
+			if(var == False):
+				result = left or right
+				print('store i1 ' + str(result)+', i1* '+ str(nro_variavel_resp)+ ', align 4')
+			else:
+				if(varl == True):
+					self.count_add()
+					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
+				if(varr == True):
+					self.count_add()
+					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
 		return self.visitChildren(ctx)
 '''
 	# Visit a parse tree produced by CymbolParser#EqExpr.
