@@ -660,7 +660,8 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		else:
 			nVarLeft = left
 
-		if(right == None):
+		if(right != 'true' and right != 'false'):
+			varr = True
 			varRight = str(ctx.expr()[1].ID())
 			if((nome_func,varRight) in variaveis):
 				nVarRight = variaveis[nome_func,varRight][0]
@@ -687,14 +688,22 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				else:
 					result = 'true'
 					print('store i1 ' + str(result)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
-
 			else:
-					self.count_add()
-					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
-					print('br i1 %'+ str(self.count)+', label %'+ str(self.count)+ ', label %'+ str(self.count))
-					#br i1 %7, label %9, label %8
-					self.count_add()
-					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
+				self.count_add()
+				print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
+				br1 = self.count+1
+				br2 = self.count+3
+				print('br i1 %'+ str(self.count)+', label %'+ str(self.count+1)+ ', label %'+ str(self.count+3))
+				self.count_add()
+				print('; <label>:'+str(self.count)+':')
+				self.count_add()
+				print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
+				self.count_add()
+				print('br label %'+ str(self.count)+'\n')
+				print('; <label>:'+str(self.count)+':')
+				self.count_add()
+				print("%{} = phi i1 [ false, %1 ], [ %{}, %{} ]".format(self.count,br1,br2))
+				print('store i1 ' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
 
 		else: #caso uma operação OR
 			if(varr == False or varl == False): # se constante
@@ -715,7 +724,6 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			else:
 					self.count_add()
 					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
-
 					self.count_add()
 					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')	
 		return self.visitChildren(ctx)
