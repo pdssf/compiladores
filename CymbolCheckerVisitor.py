@@ -33,12 +33,15 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		self.count += 1
 	
 	def visitIntExpr(self, ctx:CymbolParser.IntExprContext):
+		print('store i32 ' + ctx.getText() + ', i32* %'+ str(self.count) + ', align 4')
 		return int(ctx.INT().getText())
 
 	def visitFloatExpr(self, ctx:CymbolParser.FloatExprContext):
+		print('store float ' + str(float_to_hex(float(ctx.getText()))), ', float* %'+str(self.count) + ', align 4')
 		return float(ctx.FLOAT().getText())
 
 	def visitFormTypeBoolean(self, ctx:CymbolParser.BooleanExprContext):
+		print('store i1 '+ ctx.getText(), ', i1* %'+str(self.count) + ', align 4')
 		return Type.BOOL
 
 	def visitAssignStat(self, ctx:CymbolParser.AssignStatContext):
@@ -66,7 +69,6 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					expr = 'false'
 			else:
 				expr = expr.getText()
-
 			if(tyype == 'int'):
 				print('global i32 '+ expr, end = ', ')
 			elif(tyype == 'float'):
@@ -78,41 +80,15 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			self.count += 1
 			if(tyype == 'int'):
 				print('%' + str(self.count) +  '= alloca i32, align 4')
-				variaveis[func_name,var_name] = (self.count,tyype)
-				self.nome_variavel_atual = var_name
 			elif(tyype == 'float'):
 				print('%' + str(self.count) +  '= alloca float, align 4')
-				variaveis[func_name,var_name] = (self.count,tyype)
-				self.nome_variavel_atual = var_name
 			else:
 				print('%' + str(self.count) + '= alloca i1, align 4')
-				variaveis[func_name,var_name] = (self.count,tyype)
-				self.nome_variavel_atual = var_name
+
+			variaveis[func_name,var_name] = (self.count,tyype)
+			self.nome_variavel_atual = var_name
 			if (expr != None):
-				if(tyype == 'int'):
-					if(('+' in expr.getText()) or ('-' in expr.getText())):
-						self.visitChildren(ctx)
-					elif(('*' in expr.getText()) or ('/' in expr.getText())):
-						self.visitChildren(ctx)
-					elif('==' in expr.getText() or '!=' in expr.getText()):
-						 self.visitChildren(ctx)
-					else:	
-						print('store i32 ' + expr.getText() + ', i32* %'+ str(self.count) + ', align 4')
-				elif(tyype == 'float'):
-					if(('+' in expr.getText()) or ('-' in expr.getText())):
-						self.visitChildren(ctx)
-					elif(('*' in expr.getText()) or ('/' in expr.getText())):
-						self.visitChildren(ctx)
-					elif(('==' in expr.getText()) or ('!=' in expr.getText())):
-						self.visitChildren(ctx)
-					else:
-						expr = expr.getText()
-						print('store float ' + str(float_to_hex(float(expr))), ', float* %'+str(self.count) + ', align 4')
-				else:
-					if(('true' in expr.getText()) or ('false' in expr.getText())):
-						print('store i1 '+ expr.getText(), ', i1* %'+str(self.count) + ', align 4')
-					else:
-						self.visitChildren(ctx)
+				self.visitChildren(ctx)
 			  		
 	def visitFuncDecl(self, ctx:CymbolParser.FuncDeclContext):
 		#elementos iniciais: nome da funcao, tipo, e lista de parametros
@@ -626,8 +602,8 @@ class CymbolCheckerVisitor(CymbolVisitor):
 
 	# Visit a parse tree produced by CymbolParser#AndOrExpr.
 	def visitAndOrExpr(self, ctx:CymbolParser.AndOrExprContext):
-		left = ctx.expr()[0].accept(self)
-		right = ctx.expr()[1].accept(self)
+		left = ctx.expr()[0].getText()
+		right = ctx.expr()[1].getText()
 		nome_func = self.nome_func_atual
 		exprOperador = ctx.op.text
 		
@@ -894,7 +870,11 @@ class CymbolCheckerVisitor(CymbolVisitor):
             
 	
 
-
+	def visitReturnStat(self, ctx:CymbolParser.ReturnStatContext):
+		print('ret (a implementar)')
+		#retorno = variaveis[ctx.expr().getText(),str(ctx.expr())]
+		#print('%' + str(self.count) + '= load i32, i32* %'+ str(retorno) + ', align 4')
+		#print('ret i32' + str(self.count))
 
 	# Visit a parse tree produced by CymbolParser#ComparisonExpr.
 	# http://llvm.org/docs/LangRef.html#icmp-instruction
@@ -929,11 +909,3 @@ def visitComparisonExpr(self, ctx:CymbolParser.ComparisonExprContext):
 #  ret i32 %13
     # Visit a parse tree produced by CymbolParser#returnStat.
 '''
-'''
-	def visitReturnStat(self, ctx:CymbolParser.ReturnStatContext):
-		retorno = variaveis[ctx.expr().getText(),str(ctx.expr())]
-		print('%' + str(self.count) + '= load i32, i32* %'+ str(retorno) + ', align 4')
-		print('ret i32' + str(self.count))
-		#return self.visitChildren(ctx)
-'''
-
