@@ -3,4 +3,5 @@
 /autogen/*
 /antlr-cymbol-grammar-checker-types/*
 teste.py
-teste.ll
+*.ll
+*.c

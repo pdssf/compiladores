@@ -605,8 +605,8 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			
 			self.count += 1
 			print('%'+str(self.count),'= load i1, i1*',nexpressao,', align 4')
-			self.count +=1
-			print('%'+str(self.count),'= cmp ne i1*'+str(self.count-1),',false')
+			#self.count +=1
+			#print('%'+str(self.count),'= cmp ne i1*'+str(self.count-1),',false')
 			self.count+=1
 			print('%'+str(self.count),'= xor i1*'+str(self.count-1),',true')
 			#self.count+=1
@@ -643,10 +643,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		#apenas para ajudar na checkagem
 		varl = False
 		varr = False
-		#Procuro em variaveis locais
-		#elif: procuro em parametros
-		#elif: procuro em globais
-		#else: assumo que é um numero
+		
 		if(left != 'true' and left != 'false'):
 			varl = True
 			varLeft = str(ctx.expr()[0].ID())
@@ -678,45 +675,54 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			else:
 				right = True
 			nvarRight = right
-<<<<<<< HEAD
 
-
-			'''self.count_add()
-			print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
-			self.count_add()
-			print('%' + str(self.count) + '= load float, float* %'  + str(nVarRight) + ', align 4')'''
-			
 		if('&&' in exprOperador): #caso uma operação AND
-			if(varr == False and varl == False):
-				result = left and right
-				print('store i1 ' + str(result)+', i1* '+ str(nro_variavel_resp)+ ', align 4')	
-			else:
-				if(varl == True):
+			if(varr == False or varl == False): # se variavel
+				if(left == False or right == False):# se alguma delas é falsa
+					result = 'false'
+					print('store i1 ' + str(result)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')	
+				elif(varr):
+					self.count_add()
+					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
+					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')	
+				elif(varl):
 					self.count_add()
 					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
-				if(varr == True):
+					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
+				else:
+					result = 'true'
+					print('store i1 ' + str(result)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
+
+			else:
+					self.count_add()
+					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
+					print('br i1 %'+ str(self.count)+', label %'+ str(self.count)+ ', label %'+ str(self.count))
+					#br i1 %7, label %9, label %8
 					self.count_add()
 					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
 
 		else: #caso uma operação OR
-			if(var == False):
-				result = left or right
-				print('store i1 ' + str(result)+', i1* '+ str(nro_variavel_resp)+ ', align 4')
-			else:
-				if(varl == True):
-					self.count_add()
-					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
-				if(varr == True):
+			if(varr == False or varl == False): # se constante
+				if(left or right):# se alguma delas é vdd
+					result = 'true'
+					print('store i1 ' + str(result)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')	
+				elif(varr):
 					self.count_add()
 					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
-=======
-		
-		#if('&&' in exprOperador): #caso uma operação AND
+					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')	
+				elif(varl):
+					self.count_add()
+					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
+					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
+				else:
+					result = 'false'
+					print('store i1 ' + str(result)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
+			else:
+					self.count_add()
+					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
 
-		#else: #caso uma operação OR
-		#	print("Implementar")
-			
->>>>>>> 3d4a044de9c95f51b734ded9c1e683d133241e5c
+					self.count_add()
+					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')	
 		return self.visitChildren(ctx)
 
 	# Visit a parse tree produced by CymbolParser#EqExpr.
