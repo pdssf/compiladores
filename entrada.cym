@@ -1,7 +1,11 @@
-
-int maim(int z, float y, boolean x){
-    int a;
-    boolean x = true;
+float global = 0.0;
+int maim(){
+    boolean g = true;
+    int c = 1962;
+    boolean a = false;
+    boolean b = false;
+    b = a || g;
+    c = 1000
     return 0;
 }
 

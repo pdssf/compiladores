@@ -40,15 +40,16 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		print('store float ' + str(float_to_hex(float(ctx.getText()))), ', float* %'+str(self.count) + ', align 4')
 		return float(ctx.FLOAT().getText())
 
-	def visitFormTypeBoolean(self, ctx:CymbolParser.BooleanExprContext):
+	# Visit a parse tree produced by CymbolParser#BooleanExpr.
+	def visitBooleanExpr(self, ctx:CymbolParser.BooleanExprContext):
 		print('store i1 '+ ctx.getText(), ', i1* %'+str(self.count) + ', align 4')
-		return Type.BOOL
+		return self.visitChildren(ctx)
 
 	def visitAssignStat(self, ctx:CymbolParser.AssignStatContext):
 		#A variável que recebera o valor de uma expressão
 		self.assign_que_ira_receber_valor_expr = ctx.ID().getText()
 		return self.visitChildren(ctx)
-
+#-----------------------------------------------------------------------------------------------------------------------------
 	def visitVarDecl(self, ctx:CymbolParser.VarDeclContext):
 		var_name = ctx.ID().getText()
 		tyype = ctx.tyype().getText()
@@ -89,7 +90,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			self.nome_variavel_atual = var_name
 			if (expr != None):
 				self.visitChildren(ctx)
-			  		
+#-----------------------------------------------------------------------------------------------------------------------------
 	def visitFuncDecl(self, ctx:CymbolParser.FuncDeclContext):
 		#elementos iniciais: nome da funcao, tipo, e lista de parametros
 		func_name = ctx.ID().getText() 
@@ -151,7 +152,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		self.nome_func_atual = func_name
 		self.visitChildren(ctx)
 		print('}') #fim da funçao
-
+#-----------------------------------------------------------------------------------------------------------------------------
 	def visitAddSubExpr(self, ctx:CymbolParser.AddSubExprContext):
 		left = ctx.expr()[0].accept(self)
 		right = ctx.expr()[1].accept(self)
@@ -350,7 +351,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 						print('%' + str(self.count) + ' = fptrunc double %' + str(self.count-1) + ' to float')
 						print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')
 		return self.visitChildren(ctx)
-
+#-----------------------------------------------------------------------------------------------------------------------------
 	def visitMulDivExpr(self, ctx:CymbolParser.MulDivExprContext):
 		left = ctx.expr()[0].accept(self)
 		right = ctx.expr()[1].accept(self)
@@ -550,9 +551,9 @@ class CymbolCheckerVisitor(CymbolVisitor):
 						print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')     
 		return self.visitChildren(ctx)
     
-
+#-----------------------------------------------------------------------------------------------------------------------------
 	def visitNotExpr(self, ctx:CymbolParser.NotExprContext):
-		# a instrução not deve tomar um literal ou booleano e fazer 	
+		# a instrução not deve tomar um literal ou booleano
 		nome_func = self.nome_func_atual
 		expressao = ctx.expr().getText()
 		
@@ -599,7 +600,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			#%7 = zext i1 %6 to i32
 
 		return self.visitChildren(ctx)
-
+#-----------------------------------------------------------------------------------------------------------------------------
 	# Visit a parse tree produced by CymbolParser#AndOrExpr.
 	def visitAndOrExpr(self, ctx:CymbolParser.AndOrExprContext):
 		left = ctx.expr()[0].getText()
@@ -649,7 +650,8 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			nvarRight = right
 
 		if('&&' in exprOperador): #caso uma operação AND
-			if(varr == False or varl == False): # se variavel
+			if(varr == False or varl == False): # se ha alguma constante
+
 				if(left == False or right == False):# se alguma delas é falsa
 					result = 'false'
 					print('store i1 ' + str(result)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')	
@@ -664,22 +666,20 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				else:
 					result = 'true'
 					print('store i1 ' + str(result)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
-			else:
+
+			else:#se só existem variáveis
 				self.count_add()
 				print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
-				br1 = self.count+1
-				br2 = self.count+3
-				print('br i1 %'+ str(self.count)+', label %'+ str(self.count+1)+ ', label %'+ str(self.count+3))
-				self.count_add()
-				print('; <label>:'+str(self.count)+':')
 				self.count_add()
 				print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
 				self.count_add()
-				print('br label %'+ str(self.count)+'\n')
-				print('; <label>:'+str(self.count)+':')
-				self.count_add()
-				print("%{} = phi i1 [ false, %1 ], [ %{}, %{} ]".format(self.count,br1,br2))
-				print('store i1 ' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
+				#<result> = and i32 4, %var
+				print('%' + str(self.count) + '= and i1, %'  + str(self.count - 1), + str(self.count - 2) ', align 4')
+				print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
+
+  #%3 = icmp ne i32 %0, 0
+  #%4 = icmp ne i32 %1, 0
+  #%5 = and i1 %3, %4
 
 		else: #caso uma operação OR
 			if(varr == False or varl == False): # se constante
@@ -698,12 +698,16 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					result = 'false'
 					print('store i1 ' + str(result)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
 			else:
-					self.count_add()
-					print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
-					self.count_add()
-					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')	
+				self.count_add()
+				print('%' + str(self.count) + '= load i1, i1* %' + str(nVarLeft) + ', align 4')
+				self.count_add()
+				print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
+				self.count_add()
+				#<result> = and i32 4, %var
+				print('%' + str(self.count) + '= or i1, %'  + str(self.count - 1), + str(self.count - 2) ', align 4')
+				print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
 		return self.visitChildren(ctx)
-
+#-----------------------------------------------------------------------------------------------------------------------------
 	# Visit a parse tree produced by CymbolParser#EqExpr.
 	def visitEqExpr(self, ctx:CymbolParser.EqExprContext):
 		left = ctx.expr()[0].accept(self)
