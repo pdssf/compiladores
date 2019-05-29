@@ -33,11 +33,30 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		self.count += 1
 	
 	def visitIntExpr(self, ctx:CymbolParser.IntExprContext):
-		print('store i32 ' + ctx.getText() + ', i32* %'+ str(self.count) + ', align 4')
+		if(self.assign_que_ira_receber_valor_expr == None):
+			print('store i32 ' + ctx.getText() + ', i32* %'+ str(self.count) + ', align 4')
+		else:
+			nome_func = self.nome_func_atual
+			nome_var = self.assign_que_ira_receber_valor_expr
+			if((nome_func, nome_var) in variaveis):
+				nro_variavel_resp = '%'+str(variaveis[nome_func, nome_var][0])
+			else:
+				nro_variavel_resp = '@' + str(nome_var)
+			print('store i32 ' + ctx.getText() + ', i32* '+ nro_variavel_resp + ', align 4')
 		return int(ctx.INT().getText())
 
 	def visitFloatExpr(self, ctx:CymbolParser.FloatExprContext):
-		print('store float ' + str(float_to_hex(float(ctx.getText()))), ', float* %'+str(self.count) + ', align 4')
+		if(self.assign_que_ira_receber_valor_expr == None):
+			print('store float ' + str(float_to_hex(float(ctx.getText()))), ', float* %'+str(self.count) + ', align 4')
+		else:
+			nome_func = self.nome_func_atual
+			nome_var = self.assign_que_ira_receber_valor_expr
+			if((nome_func, nome_var) in variaveis):
+				nro_variavel_resp = '%'+str(variaveis[nome_func, nome_var][0])
+			else:
+				nro_variavel_resp = '@' + str(nome_var)
+			print('store float ' + str(float_to_hex(float(ctx.getText()))), ', float* '+str(nro_variavel_resp) + ', align 4')
+			self.assign_que_ira_receber_valor_expr = None
 		return float(ctx.FLOAT().getText())
 
 	# Visit a parse tree produced by CymbolParser#BooleanExpr.
@@ -674,7 +693,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
 				self.count_add()
 				#<result> = and i32 4, %var
-				print('%' + str(self.count) + '= and i1, %'  + str(self.count - 1), + str(self.count - 2) ', align 4')
+				print('%' + str(self.count) + '= and i1, %'  + str(self.count - 1) +', %' + str(self.count - 2)+ ', align 4')
 				print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
 
   #%3 = icmp ne i32 %0, 0
@@ -704,7 +723,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')
 				self.count_add()
 				#<result> = and i32 4, %var
-				print('%' + str(self.count) + '= or i1, %'  + str(self.count - 1), + str(self.count - 2) ', align 4')
+				print('%' + str(self.count) + '= or i1, %'  + str(self.count - 1)+', %' + str(self.count - 2)+', align 4')
 				print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
 		return self.visitChildren(ctx)
 #-----------------------------------------------------------------------------------------------------------------------------
@@ -714,7 +733,6 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		right = ctx.expr()[1].accept(self)
 		nome_func = self.nome_func_atual
 		exprOperador = ctx.op.text
-		#print(exprOperador)
   
 		if(self.assign_que_ira_receber_valor_expr == None):
     			nome_var = self.nome_variavel_atual			
@@ -908,8 +926,3 @@ def visitComparisonExpr(self, ctx:CymbolParser.ComparisonExprContext):
 		'''
 #	def aggregateResult(self, aggregate:Type, next_result:Type):
 #		return next_result if next_result != None else aggregate
-'''
-#%13 = load i32, i32* %7, align 4
-#  ret i32 %13
-    # Visit a parse tree produced by CymbolParser#returnStat.
-'''
