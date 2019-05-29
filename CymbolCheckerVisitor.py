@@ -644,21 +644,12 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			nro_variavel_resp = '@' + str(nome_var)
 			tipo = globais[nome_var]
 
-<<<<<<< HEAD
 		#apenas para ajudar na checkagem
 		varl = False
 		varr = False
 		
 		if(left != 'true' and left != 'false'):
 			varl = True
-=======
-		#print(left,right)
-		#Procuro em variaveis locais
-		#elif: procuro em parametros
-		#elif: procuro em globais
-		#else: assumo que é um numero
-		if(left == None):
->>>>>>> 7d098f2bf88b6c62e09e87ca93577a4361a4cd15
 			varLeft = str(ctx.expr()[0].ID())
 			if((nome_func,varLeft) in variaveis):
 				nVarLeft = variaveis[nome_func,varLeft][0]
@@ -679,7 +670,6 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				nVarRight = '@' + str(varRight)
 		else:
 			nvarRight = right
-<<<<<<< HEAD
 
 		if('&&' in exprOperador): #caso uma operação AND
 			if(varr == False or varl == False): # se variavel
@@ -728,14 +718,6 @@ class CymbolCheckerVisitor(CymbolVisitor):
 
 					self.count_add()
 					print('%' + str(self.count) + '= load i1, i1* %'  + str(nVarRight) + ', align 4')	
-=======
-		
-		#if('&&' in exprOperador): #caso uma operação AND
-
-		#else: #caso uma operação OR
-		#	print("Implementar")
-			
->>>>>>> 7d098f2bf88b6c62e09e87ca93577a4361a4cd15
 		return self.visitChildren(ctx)
 
 	# Visit a parse tree produced by CymbolParser#EqExpr.
