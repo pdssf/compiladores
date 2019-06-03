@@ -34,7 +34,7 @@ MINUS : '-';
 AND   : '&&';
 OR    : '||';
 
-BOOLEAN:  'true' | 'false';
+BOOLEAN:  'true' | 'false' | 'True' | 'False' ;
 ID  : (LETTER) (LETTER | NUMBER)*;
 INT : NUMBER+;
 FLOAT:  NUMBER+ '.' NUMBER+;

@@ -128,8 +128,8 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				print('%' + str(self.count) +  '= alloca float, align 4')
 			else:
 				print('%' + str(self.count) + '= alloca i1, align 4')
-
 			variaveis[func_name,var_name] = (self.count,tyype)
+
 			self.nome_variavel_atual = var_name
 			if (expr != None):
 				self.visitChildren(ctx)
@@ -169,7 +169,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 						print('i1', end = '')
 				i = i+1  
 			print(') #0 {')
-			tipo
+			
 			for p in listaParam:
 				self.count += 1
 				if ('int' in p.getText()):
@@ -231,7 +231,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			if((nome_func,varLeft) in variaveis):
 				nVarLeft = variaveis[nome_func,varLeft][0]
 			elif((nome_func,varLeft) in parametros):
-				nVarLeft = parametros[nome_func,varLeft]
+				nVarLeft = parametros[nome_func,varLeft][0]
 			else:
 				nVarLeft = '@' + str(varLeft)
 
@@ -243,7 +243,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			if((nome_func,varRight) in variaveis):
 				nVarRight = variaveis[nome_func,varRight][0]
 			elif((nome_func,varRight) in parametros):
-				nVarRight = parametros[nome_func,varRight]
+				nVarRight = parametros[nome_func,varRight][0]
 			else:
 				nVarRight = '@' + str(varRight)
 
@@ -428,7 +428,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			if((nome_func,varLeft) in variaveis):
 				nVarLeft = variaveis[nome_func,varLeft][0]
 			elif((nome_func,varLeft) in parametros):
-				nVarLeft = parametros[nome_func,varLeft]
+				nVarLeft = parametros[nome_func,varLeft][0]
 			else:
 				nVarLeft = '@' + str(varLeft)
 
@@ -440,7 +440,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			if((nome_func,varRight) in variaveis):
 				nVarRight = variaveis[nome_func,varRight][0]
 			elif((nome_func,varRight) in parametros):
-				nVarRight = parametros[nome_func,varRight]
+				nVarRight = parametros[nome_func,varRight][0]
 			else:
 				nVarRight = '@' + str(varRight)
 
@@ -671,7 +671,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			if((nome_func,varLeft) in variaveis):
 				nVarLeft = variaveis[nome_func,varLeft][0]
 			elif((nome_func,varLeft) in parametros):
-				nVarLeft = parametros[nome_func,varLeft]
+				nVarLeft = parametros[nome_func,varLeft][0]
 			else:
 				nVarLeft = '@' + str(varLeft)
 		else:
@@ -683,7 +683,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			if((nome_func,varRight) in variaveis):
 				nVarRight = variaveis[nome_func,varRight][0]
 			elif((nome_func,varRight) in parametros):
-				nVarRight = parametros[nome_func,varRight]
+				nVarRight = parametros[nome_func,varRight][0]
 			else:
 				nVarRight = '@' + str(varRight)
 		else:
@@ -748,7 +748,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		nome_func = self.nome_func_atual
 		  
 		if(self.assign_que_ira_receber_valor_expr == None):
-    			nome_var = self.nome_variavel_atual			
+			nome_var = self.nome_variavel_atual			
 		else:
 			nome_var = self.assign_que_ira_receber_valor_expr
 			self.assign_que_ira_receber_valor_expr = None
@@ -799,14 +799,12 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		#<result> = icmp ne float* %X, %X     ; yields: result=false
 		#Cmp
 		#eq and not eq
-		if('int' in tipo):
+		if(tipo =='int' or tipo == int):
 			if(ctx.op.text == '=='):
 				exprOperador = 'eq'
-				print('test 1')
 			else:
 				exprOperador = 'ne'
 			if((left != None) and (right != None)):# Constantes
-				print('test f')
 				if(exprOperador == 'eq'):
 					result = (left == right)
 				else:
@@ -836,8 +834,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					print('%' + str(self.count) + ' = icmp '+ exprOperador + ' i32 ' + str(left) + ', %' + str(self.count - 1) )   
 					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
       
-		elif('float' in tipo):
-
+		elif(tipo == 'float' or tipo == float):
 			if(ctx.op.text == '=='): #conforme as regras do clang
 				exprOperador = 'oeq'
 			else:
@@ -878,7 +875,43 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					self.count += 1
 					print('%' + str(self.count) + ' = fcmp '+ exprOperador + ' double '  + str(left) + ', %' + str(self.count - 1))
 					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
-               
+
+		else:
+			if(ctx.op.text == '=='):
+				exprOperador = 'eq'
+			else:
+				exprOperador = 'ne'
+
+			if((left != None) and (right != None)):# Constantes
+				if(exprOperador == 'eq'):
+					result = (left == right)
+				else:
+					result = (left != right)
+				print('store i1 ' + str(result)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')	
+			
+			elif((left == None) and (right == None)):# 2 Variáveis
+				self.count += 1
+				print('%' + str(self.count) + '= load i8, i8* %' + str(nVarLeft) + ', align 4')
+				self.count += 1
+				print('%' + str(self.count) + '= load i8, i8* %' + str(nVarRight) + ', align 4')
+				self.count += 1
+				print('%' + str(self.count) + '= icmp '+ exprOperador + ' i8 %' + str(self.count - 2) + ', %' + str(self.count -1))
+				print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
+			
+			else:
+				if(left == None):# Variável e cte
+					self.count += 1
+					print('%' + str(self.count) + ' = load i8, i8* %' + str(nVarLeft) + ', align 4')
+					self.count += 1
+					print('%' + str(self.count) + ' = icmp '+ exprOperador + ' i8 %' + str(self.count - 1) + ', ' + str(right))
+					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
+				else:
+					self.count += 1
+					print('%' + str(self.count) + ' = load i8, i8* %' + str(nVarRight) + ', align 4')
+					self.count += 1
+					print('%' + str(self.count) + ' = icmp '+ exprOperador + ' i8 ' + str(left) + ', %' + str(self.count - 1) )   
+					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')	
+
 #-----------------------------------------------------------------------------------------------------------------------------
 	def visitReturnStat(self, ctx:CymbolParser.ReturnStatContext):
 		print('ret (a implementar)')
