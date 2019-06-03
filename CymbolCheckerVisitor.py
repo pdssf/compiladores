@@ -911,6 +911,139 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					self.count += 1
 					print('%' + str(self.count) + ' = icmp '+ exprOperador + ' i8 ' + str(left) + ', %' + str(self.count - 1) )   
 					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')	
+#-----------------------------------------------------------------------------------------------------------------------------
+	# Visit a parse tree produced by CymbolParser#ComparisonExpr.
+	def visitComparisonExpr(self, ctx:CymbolParser.ComparisonExprContext):
+		left = ctx.expr()[0].getText()
+		right = ctx.expr()[1].getText()
+		nome_func = self.nome_func_atual
+			
+		if(self.assign_que_ira_receber_valor_expr == None):
+			nome_var = self.nome_variavel_atual			
+		else:
+			nome_var = self.assign_que_ira_receber_valor_expr
+			self.assign_que_ira_receber_valor_expr = None
+
+		if((nome_func, nome_var) in variaveis):
+			nro_variavel_resp = variaveis[nome_func, nome_var][0]
+		else:
+			nro_variavel_resp = '@' + str(nome_var)
+
+		#Procuro em variaveis locais
+		#elif: procuro em parametros
+		#elif: procuro em globais
+		#else: assumo que é um numero
+		left = converte(left)
+		if(left!= None):
+			nVarLeft = left
+			tipo = type(left)
+		else:
+			left = None
+			varLeft = str(ctx.expr()[0].ID())
+			if((nome_func,varLeft) in variaveis):
+				nVarLeft = variaveis[nome_func,varLeft][0]
+				tipo = variaveis[nome_func,varLeft][1]
+			elif((nome_func,varLeft) in parametros):
+				nVarLeft = parametros[nome_func,varLeft][0]
+				tipo = parametros[nome_func,varLeft][1]
+			else:
+				nVarLeft = '@' + str(varLeft)
+				tipo = globais[varLeft]
+
+		right = converte(right)
+		if(right!= None):
+			tipo = type(right)
+			nVarRight = right
+		else:
+			varRight = str(ctx.expr()[1].ID())
+			if((nome_func,varRight) in variaveis):
+				nVarRight = variaveis[nome_func,varRight][0]
+				tipo = variaveis[nome_func,varRight][1]
+			elif((nome_func,varRight) in parametros):
+				nVarRight = parametros[nome_func,varRight][0]
+				tipo = parametros[nome_func,varRight][1]
+			else:
+				nVarRight = '@' + str(varRight)
+				tipo = globais[varRight]
+		#print(exprOperador);
+		#icmp eq i32 4, 5          ; yields: result=false
+		#<result> = icmp ne float* %X, %X     ; yields: result=false
+		#Cmp
+		#eq and not eq
+		if(tipo =='int' or tipo == int):
+			op = ctx.op.text
+			if(op == '>'):
+				exprOperador = 'sgt'
+			elif(op == '>='):
+				exprOperador = 'sge'
+			elif(op == '<'):
+				exprOperador = 'slt'
+			else:
+				exprOperador = 'sle'
+			if((left != None) and (right != None)):# Constantes
+				if(exprOperador == 'sgt'):
+					result = (left > right)
+				elif(exprOperador == 'sge'):
+					result = (left >= right)
+				elif(exprOperador == 'slt'):
+					result = (left < right)
+				else:
+					result = (left <= right)
+				print('store i1 ' + str(result)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')	
+			
+			elif((left == None) and (right == None)):# 2 Variáveis
+				self.count += 1
+				print('%' + str(self.count) + '= load i32, i32* %' + str(nVarLeft) + ', align 4')
+				self.count += 1
+				print('%' + str(self.count) + '= load i32, i32* %' + str(nVarRight) + ', align 4')
+				self.count += 1
+				print('%' + str(self.count) + '= icmp '+ exprOperador + ' i32 %' + str(self.count - 2) + ', %' + str(self.count -1))
+				print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
+			
+			else:
+				if(left == None):# Variável e cte
+					self.count += 1
+					print('%' + str(self.count) + ' = load i32, i32* %' + str(nVarLeft) + ', align 4')
+					self.count += 1
+					print('%' + str(self.count) + ' = icmp '+ exprOperador + ' i32 %' + str(self.count - 1) + ', ' + str(right))
+					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
+				else:
+					self.count += 1
+					print('%' + str(self.count) + ' = load i32, i32* %' + str(nVarRight) + ', align 4')
+					self.count += 1
+					print('%' + str(self.count) + ' = icmp '+ exprOperador + ' i32 ' + str(left) + ', %' + str(self.count - 1) )   
+					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
+
+		else:
+			op = ctx.op.text
+			if(op == '>'):
+				exprOperador = 'ugt'
+			elif(op == '>='):
+				exprOperador = 'uge'
+			elif(op == '<'):
+				exprOperador = 'olt'
+			else:
+				exprOperador = 'ole'
+
+			if((left != None) and (right != None)):
+				if(exprOperador == 'sgt'):
+					result = (left > right)
+				elif(exprOperador == 'sge'):
+					result = (left >= right)
+				elif(exprOperador == 'slt'):
+					result = (left < right)
+				else:
+					result = (left <= right)
+				print('store i1 ' + str(result)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')	
+
+			elif((left == None) and (right == None)):
+				self.count += 1
+				print('%' + str(self.count) + '= load float, float* %' + str(nVarLeft) + ', align 4')
+				self.count += 1
+				print('%' + str(self.count) + '= load float, float* %' + str(nVarRight) + ', align 4')
+				self.count += 1
+				print('%' + str(self.count) + '= fcmp '+ exprOperador + ' float %' + str(self.count - 2) + ', %' + str(self.count -1))
+				print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')
 
 #-----------------------------------------------------------------------------------------------------------------------------
 	def visitReturnStat(self, ctx:CymbolParser.ReturnStatContext):

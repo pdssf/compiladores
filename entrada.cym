@@ -1,8 +1,10 @@
 
-int maim(){
-    float a = 0.0;
-    float b = 0.1;
-    boolean c = 0.0 == 0.0;
-    c = (a == b);
-    c = (a != a);
+boolean booleanOperationTest(float a, float b ){
+	boolean varBooleanOperationTest = true && true;
+	varBooleanOperationTest = true || false ;
+	int varNumOperationTest = b > a ;
+	varNumOperationTest = 2 < 1 ;
+	varNumOperationTest = a == b ;
+	varNumOperationTest = 2 != 1 ;
+	return true;
 }
