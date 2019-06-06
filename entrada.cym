@@ -1,10 +1,10 @@
 
-boolean booleanOperationTest(float a, float b ){
-	boolean varBooleanOperationTest = true && true;
-	varBooleanOperationTest = true || false ;
+int intOperationTest(float a, float b ){
+	int varBooleanOperationTest = 1 && 1;
+	varBooleanOperationTest = 1 || 0 ;
 	int varNumOperationTest = b > a ;
 	varNumOperationTest = 2 < 1 ;
 	varNumOperationTest = a == b ;
 	varNumOperationTest = 2 != 1 ;
-	return true;
+	return 1;
 }

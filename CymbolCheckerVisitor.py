@@ -1017,9 +1017,9 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		else:
 			op = ctx.op.text
 			if(op == '>'):
-				exprOperador = 'ugt'
+				exprOperador = 'ogt'
 			elif(op == '>='):
-				exprOperador = 'uge'
+				exprOperador = 'oge'
 			elif(op == '<'):
 				exprOperador = 'olt'
 			else:
