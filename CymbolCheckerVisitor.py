@@ -10,7 +10,8 @@ variaveis = {}
 parametros = {}
 #dicionario de variaveis globais
 globais = {}
-
+#dicionario de funcoes
+funcoes = {}
 
 def float_to_hex(f):
 	return hex(struct.unpack('<I', struct.pack('<f', f))[0])
@@ -137,19 +138,12 @@ class CymbolCheckerVisitor(CymbolVisitor):
 	def visitFuncDecl(self, ctx:CymbolParser.FuncDeclContext):
 		#elementos iniciais: nome da funcao, tipo, e lista de parametros
 		func_name = ctx.ID().getText() 
-		tyype = ctx.tyype().getText()
+		tyype = retType(ctx.tyype().getText())
 		parametrslist = ctx.paramTypeList()
 		self.count = 0
 
-		if(tyype == 'int'):
-			print('define i32 @' + func_name, end = '(')
-		elif (tyype == 'float'):
-			print('define float @' + func_name, end = '(')
-		elif (tyype == 'boolean'):
-			print('define i1 @' + func_name, end = '(')
-		else:
-			print('erou')
-			exit(1)
+		funcoes[func_name] = tyype
+		print('define {} @{}'.format(tyype,func_name), end = '(')
 
 		i = 0
 		if(parametrslist != None):
@@ -912,7 +906,6 @@ class CymbolCheckerVisitor(CymbolVisitor):
 					print('%' + str(self.count) + ' = icmp '+ exprOperador + ' i8 ' + str(left) + ', %' + str(self.count - 1) )   
 					print('store i1 %' + str(self.count)+', i1* %'+ str(nro_variavel_resp)+ ', align 4')	
 #-----------------------------------------------------------------------------------------------------------------------------
-	# Visit a parse tree produced by CymbolParser#ComparisonExpr.
 	def visitComparisonExpr(self, ctx:CymbolParser.ComparisonExprContext):
 		left = ctx.expr()[0].getText()
 		right = ctx.expr()[1].getText()
@@ -1067,7 +1060,35 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			nVarExpr = self.count
 
 		print('ret {} %{}'.format(tipo,nVarExpr))
+#-----------------------------------------------------------------------------------------------------------------------------
+	def visitFunctionCallExpr(self, ctx:CymbolParser.FunctionCallExprContext):
+		#%2 = call i32 @numOperationTest()
+		#store i32 %2, i32* %1, align 4
+		#%3 = call i32 @multipleArgsTest(i32 1, i32 2, i32 3, i32 4)
+		#ID '(' exprList? ')'
+		#exprList : expr (',' expr)* 
+		func_name = ctx.ID().getText()
+		tyype = funcoes[func_name]
+		self.count_add()
 
+		print('%{} = call {} @{}'.format(self.count,tyype,func_name), end = '(')
+		
+		exprlist = ctx.exprList()
+		i = 0
+		if(exprlist != None):
+			exprlist = exprlist.expr()
+			for expr in exprlist:
+				if(i!=0):
+					print(',', end = ' ')
+				expr = expr.getText()
+				expr = converte(expr)
+				if(expr!= None):
+					nVarExpr = expr
+					tipo = retType(type(expr))
+				print('{} {}'.format(tipo,expr),end = '')
+
+				i = i+1 
+		print(')')
 #-----------------------------------------------------------------------------------------------------------------------------
 def retType(tipo):
 		if(tipo == int or tipo == 'int'):
