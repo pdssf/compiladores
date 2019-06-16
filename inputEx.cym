@@ -54,7 +54,7 @@ int numOperationTest(){
 boolean booleanOperationTest(){
 	boolean varBooleanOperationTest = true && true;
 	varBooleanOperationTest = true || false ;
-	varNumOperationTest = 2 > 1 ;
+	boolean varNumOperationTest = 2 > 1 ;
 	varNumOperationTest = 2 < 1 ;
 	varNumOperationTest = 2 == 1 ;
 	varNumOperationTest = 2 != 1 ;
@@ -65,7 +65,7 @@ int multipleArgsTest(int argTest1, int argTest2,int argTest3, int argTest4){
 	int varMultipleArgsTest = argTest1 +argTest2 + argTest3 + argTest4;
 	return varMultipleArgsTest;
 }
-
+/*
 int ifTest(){
 	boolean varIfTest = true;
 	if(true){
@@ -79,11 +79,11 @@ int ifTest(){
 	}
 	return 0;
 }
-
+*/
 int callTest(){
 	int varCallTest = returnInt();
 	float varCallTest2 = returnFloat();
-	varCallTest = ifTest();
+	/*varCallTest = ifTest();*/
 	varCallTest = multipleArgsTest(1,2,3,4);
 	return 0;
 }

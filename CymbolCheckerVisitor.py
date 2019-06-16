@@ -14,7 +14,7 @@ globais = {}
 funcoes = {}
 
 def float_to_hex(f):
-	return hex(struct.unpack('<I', struct.pack('<f', f))[0])
+	return  hex(struct.unpack('<I', struct.pack('<f', f))[0])
 
 def converte(num):
 	if(num == 'true'):
@@ -31,6 +31,14 @@ def converte(num):
 				ret = None
 		return ret
 
+def retType(tipo):
+		if(tipo == int or tipo == 'int'):
+			return 'i32'
+		elif(tipo == float or tipo == 'float'):
+			return 'float'
+		else:
+			return 'i1'
+
 class Type:
 	INT = "int"
 	FLOAT = "float"
@@ -43,56 +51,91 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		self.nome_func_atual = None
 		self.nome_variavel_atual = None
 		self.tipo_atual = None
-		self.assign_que_ira_receber_valor_expr = None
+		self.varAssign = None
 	
 	def count_add(self):
 		self.count += 1
 	
 	def visitIntExpr(self, ctx:CymbolParser.IntExprContext):
-		if(self.assign_que_ira_receber_valor_expr == None):
+		if(self.varAssign == None):
 			print('store i32 ' + ctx.getText() + ', i32* %'+ str(self.count) + ', align 4')
 		else:
 			nome_func = self.nome_func_atual
-			nome_var = self.assign_que_ira_receber_valor_expr
+			nome_var = self.varAssign
 			if((nome_func, nome_var) in variaveis):
 				nro_variavel_resp = '%'+str(variaveis[nome_func, nome_var][0])
 			else:
 				nro_variavel_resp = '@' + str(nome_var)
 			print('store i32 ' + ctx.getText() + ', i32* '+ nro_variavel_resp + ', align 4')
-			self.assign_que_ira_receber_valor_expr = None
+			self.varAssign = None
 		return int(ctx.INT().getText())
 
 	def visitFloatExpr(self, ctx:CymbolParser.FloatExprContext):
-		if(self.assign_que_ira_receber_valor_expr == None):
+		if(self.varAssign == None):
 			print('store float ' + str(float_to_hex(float(ctx.getText()))), ', float* %'+str(self.count) + ', align 4')
 		else:
 			nome_func = self.nome_func_atual
-			nome_var = self.assign_que_ira_receber_valor_expr
+			nome_var = self.varAssign
 			if((nome_func, nome_var) in variaveis):
 				nro_variavel_resp = '%'+str(variaveis[nome_func, nome_var][0])
 			else:
 				nro_variavel_resp = '@' + str(nome_var)
 			print('store float ' + str(float_to_hex(float(ctx.getText()))), ', float* '+str(nro_variavel_resp) + ', align 4')
-			self.assign_que_ira_receber_valor_expr = None
+			self.varAssign = None
 		return float(ctx.FLOAT().getText())
 
 	def visitBooleanExpr(self, ctx:CymbolParser.BooleanExprContext):
-		if(self.assign_que_ira_receber_valor_expr == None):
+		if(self.varAssign == None):
 			print('store i1 '+ ctx.getText(), ', i1* %'+str(self.count) + ', align 4')
 		else:
 			nome_func = self.nome_func_atual
-			nome_var = self.assign_que_ira_receber_valor_expr
+			nome_var = self.varAssign
 			if((nome_func, nome_var) in variaveis):
 				nro_variavel_resp = '%'+str(variaveis[nome_func, nome_var][0])
 			else:
 				nro_variavel_resp = '@' + str(nome_var)
 			print('store i1 '+ ctx.getText(), ', i1* %'+ nro_variavel_resp + ', align 4')
-			self.assign_que_ira_receber_valor_expr = None
+			self.varAssign = None
 		return self.visitChildren(ctx)
 
 	def visitAssignStat(self, ctx:CymbolParser.AssignStatContext):
-		self.assign_que_ira_receber_valor_expr = ctx.ID().getText()
-		return self.visitChildren(ctx)
+		self.varAssign = ctx.ID().getText()
+		nome_var = self.varAssign
+		nome_func = self.nome_func_atual
+		expr = ctx.expr().getText()
+		expr = converte(expr)
+
+		if((nome_func, nome_var) in variaveis):
+			nro_variavel_resp = '%' + str(variaveis[nome_func, nome_var][0])
+		elif((nome_func,nome_var) in parametros):
+			nro_variavel_resp = '%' + str(parametros[nome_func,nome_var][0])
+		else:
+			nro_variavel_resp = '@' + str(nome_var)
+
+		tipo = None
+		if(expr!= None):
+			self.varAssign = None
+			nVarExpr = expr
+			tipo = retType(type(expr))#store i32 0, i32* %4, align 4
+			print('store {} {}, {}* {}, align 4'.format(tipo, nVarExpr, tipo,nro_variavel_resp)) 
+		else:
+			try:
+				expr = str(ctx.expr().ID())
+				if((nome_func,expr) in variaveis):
+					nVarExpr = '%' + str(variaveis[nome_func,expr][0])
+					tipo = retType(variaveis[nome_func,expr][1])
+				elif((nome_func,expr) in parametros):
+					nVarExpr = '%' + str(parametros[nome_func,expr][0])
+					tipo = retType(parametros[nome_func,expr][1])
+				elif(expr in globais):
+					nVarExpr = '@' + str(expr)
+					tipo = retType(globais[expr])
+				self.count_add()
+				print('%{} = load {}, {}* {}, align 4'.format(self.count, tipo,tipo,nVarExpr))
+				print('store {} %{}, {}* {}, align 4'.format(tipo, self.count, tipo,nro_variavel_resp))
+				self.varAssign = None
+			except:
+				return self.visitChildren(ctx)
 #-----------------------------------------------------------------------------------------------------------------------------
 	def visitVarDecl(self, ctx:CymbolParser.VarDeclContext):
 		var_name = ctx.ID().getText()
@@ -124,11 +167,11 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		else:
 			self.count += 1
 			if(tyype == 'int'):
-				print('%' + str(self.count) +  '= alloca i32, align 4')
+				print('%' + str(self.count) +  ' = alloca i32, align 4')
 			elif(tyype == 'float'):
-				print('%' + str(self.count) +  '= alloca float, align 4')
+				print('%' + str(self.count) +  ' = alloca float, align 4')
 			else:
-				print('%' + str(self.count) + '= alloca i1, align 4')
+				print('%' + str(self.count) + ' = alloca i1, align 4')
 			variaveis[func_name,var_name] = (self.count,tyype)
 
 			self.nome_variavel_atual = var_name
@@ -200,11 +243,11 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		nome_func = self.nome_func_atual
 		exprOperador = ctx.op.text
 		
-		if(self.assign_que_ira_receber_valor_expr == None):
+		if(self.varAssign == None):
 			nome_var = self.nome_variavel_atual			
 		else:
-			nome_var = self.assign_que_ira_receber_valor_expr
-			self.assign_que_ira_receber_valor_expr = None
+			nome_var = self.varAssign
+			self.varAssign = None
 
 		if((nome_func, nome_var) in variaveis):
 			nro_variavel_resp = variaveis[nome_func, nome_var][0]
@@ -221,7 +264,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		if(left!= None):
 			nVarLeft = left
 		else:
-			varLeft = str(ctx.expr()[0].ID())
+			varLeft = str(ctx.expr()[0].getText())#ctx.expr()[1].getText()
 			if((nome_func,varLeft) in variaveis):
 				nVarLeft = variaveis[nome_func,varLeft][0]
 			elif((nome_func,varLeft) in parametros):
@@ -233,7 +276,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		if(right!= None):
 			nVarRight = right
 		else:
-			varRight = str(ctx.expr()[1].ID())
+			varRight = str(ctx.expr()[1].getText())
 			if((nome_func,varRight) in variaveis):
 				nVarRight = variaveis[nome_func,varRight][0]
 			elif((nome_func,varRight) in parametros):
@@ -396,11 +439,11 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		nome_func = self.nome_func_atual
 		exprOperador = ctx.op.text
 		
-		if(self.assign_que_ira_receber_valor_expr == None):
+		if(self.varAssign == None):
 			nome_var = self.nome_variavel_atual			
 		else:
-			nome_var = self.assign_que_ira_receber_valor_expr
-			self.assign_que_ira_receber_valor_expr = None
+			nome_var = self.varAssign
+			self.varAssign = None
 
 		if((nome_func, nome_var) in variaveis):
 			nro_variavel_resp = variaveis[nome_func, nome_var][0]
@@ -588,15 +631,14 @@ class CymbolCheckerVisitor(CymbolVisitor):
 						print('store float %' + str(self.count) + ', float* %' + str(nro_variavel_resp) + ', align 4')     
 #-----------------------------------------------------------------------------------------------------------------------------
 	def visitNotExpr(self, ctx:CymbolParser.NotExprContext):
-		# a instrução not deve tomar um literal ou booleano
 		nome_func = self.nome_func_atual
 		expressao = ctx.expr().getText()
 		
-		if(self.assign_que_ira_receber_valor_expr == None):
+		if(self.varAssign == None):
 			nome_var = self.nome_variavel_atual			
 		else:
-			nome_var = self.assign_que_ira_receber_valor_expr
-			self.assign_que_ira_receber_valor_expr = None		
+			nome_var = self.varAssign
+			self.varAssign = None		
 		
 		if((nome_func, nome_var) in variaveis):
 			nro_variavel_resp = '%' + str(variaveis[nome_func, nome_var][0])
@@ -642,11 +684,11 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		nome_func = self.nome_func_atual
 		exprOperador = ctx.op.text
 		
-		if(self.assign_que_ira_receber_valor_expr == None):
+		if(self.varAssign == None):
 			nome_var = self.nome_variavel_atual			
 		else:
-			nome_var = self.assign_que_ira_receber_valor_expr
-			self.assign_que_ira_receber_valor_expr = None
+			nome_var = self.varAssign
+			self.varAssign = None
 
 		if((nome_func, nome_var) in variaveis):
 			nro_variavel_resp = variaveis[nome_func, nome_var][0]
@@ -661,7 +703,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		
 		if(left != 'true' and left != 'false'):
 			varl = True
-			varLeft = str(ctx.expr()[0].ID())
+			varLeft = str(ctx.expr()[0].getText())
 			if((nome_func,varLeft) in variaveis):
 				nVarLeft = variaveis[nome_func,varLeft][0]
 			elif((nome_func,varLeft) in parametros):
@@ -673,7 +715,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 
 		if(right != 'true' and right != 'false'):
 			varr = True
-			varRight = str(ctx.expr()[1].ID())
+			varRight = str(ctx.expr()[1].getText())
 			if((nome_func,varRight) in variaveis):
 				nVarRight = variaveis[nome_func,varRight][0]
 			elif((nome_func,varRight) in parametros):
@@ -741,11 +783,11 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		right = ctx.expr()[1].getText()
 		nome_func = self.nome_func_atual
 		  
-		if(self.assign_que_ira_receber_valor_expr == None):
+		if(self.varAssign == None):
 			nome_var = self.nome_variavel_atual			
 		else:
-			nome_var = self.assign_que_ira_receber_valor_expr
-			self.assign_que_ira_receber_valor_expr = None
+			nome_var = self.varAssign
+			self.varAssign = None
 
 		if((nome_func, nome_var) in variaveis):
 			nro_variavel_resp = variaveis[nome_func, nome_var][0]
@@ -762,7 +804,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			tipo = type(left)
 		else:
 			left = None
-			varLeft = str(ctx.expr()[0].ID())
+			varLeft = str(ctx.expr()[0].getText())
 			if((nome_func,varLeft) in variaveis):
 				nVarLeft = variaveis[nome_func,varLeft][0]
 				tipo = variaveis[nome_func,varLeft][1]
@@ -778,7 +820,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			tipo = type(right)
 			nVarRight = right
 		else:
-			varRight = str(ctx.expr()[1].ID())
+			varRight = str(ctx.expr()[1].getText())
 			if((nome_func,varRight) in variaveis):
 				nVarRight = variaveis[nome_func,varRight][0]
 				tipo = variaveis[nome_func,varRight][1]
@@ -911,11 +953,11 @@ class CymbolCheckerVisitor(CymbolVisitor):
 		right = ctx.expr()[1].getText()
 		nome_func = self.nome_func_atual
 			
-		if(self.assign_que_ira_receber_valor_expr == None):
+		if(self.varAssign == None):
 			nome_var = self.nome_variavel_atual			
 		else:
-			nome_var = self.assign_que_ira_receber_valor_expr
-			self.assign_que_ira_receber_valor_expr = None
+			nome_var = self.varAssign
+			self.varAssign = None
 
 		if((nome_func, nome_var) in variaveis):
 			nro_variavel_resp = variaveis[nome_func, nome_var][0]
@@ -932,7 +974,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			tipo = type(left)
 		else:
 			left = None
-			varLeft = str(ctx.expr()[0].ID())
+			varLeft = str(ctx.expr()[0].getText())
 			if((nome_func,varLeft) in variaveis):
 				nVarLeft = '%' + str(variaveis[nome_func,varLeft][0])
 				tipo = retType(variaveis[nome_func,varLeft][1])
@@ -951,7 +993,7 @@ class CymbolCheckerVisitor(CymbolVisitor):
 			nVarRight = right
 		else:
 			right = None
-			varRight = str(ctx.expr()[1].ID())
+			varRight = str(ctx.expr()[1].getText())
 			if((nome_func,varRight) in variaveis):
 				nVarRight = '%' + str(variaveis[nome_func,varRight][0])
 				tipo = retType(variaveis[nome_func,varRight][1])
@@ -1057,22 +1099,28 @@ class CymbolCheckerVisitor(CymbolVisitor):
 				tipo = retType(globais[expr])
 			self.count_add()
 			print('%{} = load {}, {}* {}, align 4'.format(self.count, tipo,tipo,nVarExpr))
-			nVarExpr = self.count
+			nVarExpr = '%' + str(self.count)
 
-		print('ret {} %{}'.format(tipo,nVarExpr))
+		print('ret {} {}'.format(tipo,nVarExpr))
 #-----------------------------------------------------------------------------------------------------------------------------
 	def visitFunctionCallExpr(self, ctx:CymbolParser.FunctionCallExprContext):
-		#%2 = call i32 @numOperationTest()
-		#store i32 %2, i32* %1, align 4
-		#%3 = call i32 @multipleArgsTest(i32 1, i32 2, i32 3, i32 4)
-		#ID '(' exprList? ')'
-		#exprList : expr (',' expr)* 
 		func_name = ctx.ID().getText()
 		tyype = funcoes[func_name]
 		self.count_add()
-
 		print('%{} = call {} @{}'.format(self.count,tyype,func_name), end = '(')
 		
+		nome_func = self.nome_func_atual	
+		if(self.varAssign == None):
+			nome_var = self.nome_variavel_atual			
+		else:
+			nome_var = self.varAssign
+			self.varAssign = None
+
+		if((nome_func, nome_var) in variaveis):
+			nro_variavel_resp = '%'+str(variaveis[nome_func, nome_var][0])
+		else:
+			nro_variavel_resp = '@' + str(nome_var)
+
 		exprlist = ctx.exprList()
 		i = 0
 		if(exprlist != None):
@@ -1089,11 +1137,6 @@ class CymbolCheckerVisitor(CymbolVisitor):
 
 				i = i+1 
 		print(')')
+
+		print('store {} %{}, {}* {}, align 4'.format(tyype, self.count, tyype,nro_variavel_resp)) 
 #-----------------------------------------------------------------------------------------------------------------------------
-def retType(tipo):
-		if(tipo == int or tipo == 'int'):
-			return 'i32'
-		elif(tipo == float or tipo == 'float'):
-			return 'float'
-		else:
-			return 'i1'
